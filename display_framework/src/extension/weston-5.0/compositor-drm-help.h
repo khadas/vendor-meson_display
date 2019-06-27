@@ -4,7 +4,7 @@
  * This source code is subject to the terms and conditions defined in the
  * file 'LICENSE' which is part of this source code package.
  *
- * Description: 
+ * Description:
  */
 #ifndef __COMPOSITOR_DRM_HELP_H
 #define __COMPOSITOR_DRM_HELP_H
@@ -17,15 +17,6 @@ extern "C" {
 #include <xf86drmMode.h>
 #include <libudev.h>
 #include <stdint.h>
-
-/*
- * TODO:Use a common list struct
- */
-typedef struct _connector_list {
-    struct _connector_list* prev;
-    struct _connector_list* next;
-    drmModeConnector* data;
-} connector_list;
 
 /*
  * TODO:Add more mode info
@@ -42,8 +33,9 @@ typedef int (*switch_mode)(output_ctx ctx, drm_helper_mode* mode);
 
 /* create a ipc thread to handle(m_message_handle)
  * the message from client
+ * drm_fd: the drm fd
  */
-void start_help_thread(void);
+void start_help_worker(int drm_fd, int atomic_modeset_enable);
 
 /* destory the ipc thread */
 void stop_help_worker(void);
@@ -59,6 +51,12 @@ void help_delete_connector(drmModeConnector* connector);
 
 /*Call it when update weston compositor's switch mode function*/
 void help_set_switch_mode_function(output_ctx ctx, switch_mode fun);
+
+/*Call it when need update you prop befor atomic commit*/
+int help_atomic_req_add_prop(drmModeAtomicReq *req);
+
+/*Call it when repaint cycle completed*/
+void help_do_repaint_cycle_completed(void);
 
 #ifdef __cplusplus
 }

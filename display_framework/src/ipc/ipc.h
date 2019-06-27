@@ -69,6 +69,7 @@ typedef void (*message_handle)(json_object* data_in, json_object** data_out);
  *    msg_handle: the msg handle function. see message_handle.
  */
 typedef struct _server_ctx {
+    char* name;
     char type[64];
 	int setup_sfd;
 	fd_set socket_set;
@@ -81,6 +82,7 @@ typedef struct _server_ctx {
 } server_ctx;
 
 typedef struct _client_ctx {
+    char* name;
     char type[64];
 	int fd;
     message_handle msg_handle;

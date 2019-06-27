@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 #include <stdint.h>
+#include <json.h>
 
 #if DEBUG
 #include <time.h>
@@ -54,10 +55,12 @@ void drm_help_client_destory(drm_client_ctx* client);
 drm_connection_list* drm_help_client_get_connection(drm_client_ctx* client);
 
 void drm_help_client_switch_mode(drm_client_ctx* client, drm_output_mode* mode);
-
+void drm_help_client_switch_mode_s(drm_client_ctx* client, const char* mode_s);
+void drm_help_client_set_connector_properties(drm_client_ctx* client, const char* name, uint64_t value);
 void free_modes(drm_output_mode_list* data);
 void free_connection_list(drm_connection_list* data);
 void send_cmd(drm_client_ctx* client, const char* cmd, const char* opt);
+json_object* send_cmd_sync(drm_client_ctx* client, const char* cmd, const char* opt);
 
 #ifdef __cplusplus
 }

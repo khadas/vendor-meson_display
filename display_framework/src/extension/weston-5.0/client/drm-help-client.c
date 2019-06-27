@@ -12,19 +12,59 @@
 
 void send_cmd(drm_client_ctx* client, const char* cmd, const char* opt) {
     json_object* data = json_object_new_object();
-    json_object_object_add(data, "cmd", json_object_new_string(cmd));
-    if (opt != NULL) {
-        json_object_object_add(data, "value", json_object_new_string(opt));
+    int ret = 0;
+    if (cmd == NULL || data == NULL)
+        return;
+    if (0 != json_object_object_add(data, "cmd", json_object_new_string(cmd))) {
+        json_object_put(data);
+        return;
     }
+
+    if (opt != NULL) {
+        ret = json_object_object_add(data, "value", json_object_new_string(opt));
+        if (ret != 0) {
+            DEBUG_INFO("can't send CMD, may be format issue");
+            json_object_put(data);
+            return;
+        }
+    }
+    if (client_send_request((client_ctx*)client, data) <= 0)
+        DEBUG_INFO("Server disconnected");
+
+    return;
+}
+
+void set_properties(drm_client_ctx* client, const char* cmd, const char* name, uint64_t value) {
+    json_object* data = json_object_new_object();
+    json_object* json_value = json_object_new_object();
+    int ret = 0;
+
+    if (cmd == NULL || name == NULL || data == NULL || json_value == NULL)
+        return;
+
+    if (0 != json_object_object_add(data, "cmd", json_object_new_string(cmd)))
+        goto set_properties_error;
+
+    if (0 != json_object_object_add(json_value, name, json_object_new_int64((int64_t)value)))
+        goto set_properties_error;
+
+    if (0 != json_object_object_add(data, "value", json_value))
+        goto set_properties_error;
+
     if (client_send_request((client_ctx*)client, data) <= 0) {
         DEBUG_INFO("Server disconnected");
     }
     return;
+
+set_properties_error:
+    json_object_put(json_value);
+    json_object_put(data);
+    DEBUG_INFO("can't set properties, may be format issue");
 }
 
-static json_object* send_cmd_sync(drm_client_ctx* client, const char* cmd) {
-    json_object* data = json_object_new_object();
-    json_object_object_add(data, "cmd", json_object_new_string(cmd));
+json_object* send_cmd_sync(drm_client_ctx* client, const char* cmd, const char* opt) {
+    json_object* data = NULL;
+    send_cmd(client, cmd, opt);
     if (client_send_request_wait_reply((client_ctx*)client, &data) < 0) {
         DEBUG_INFO("Server disconnected");
     }
@@ -96,7 +136,7 @@ drm_connection_list* dump_modes(json_object* data) {
 }
 
 drm_connection_list* drm_help_client_get_connection(drm_client_ctx* client) {
-    return dump_modes(send_cmd_sync((client_ctx*)client, "get modes"));
+    return dump_modes(send_cmd_sync((client_ctx*)client, "get modes", NULL));
 }
 
 void drm_help_client_switch_mode(drm_client_ctx* client, drm_output_mode* mode) {
@@ -105,6 +145,14 @@ void drm_help_client_switch_mode(drm_client_ctx* client, drm_output_mode* mode) 
     send_cmd((client_ctx*)client, "set mode", buff);
 }
 
+void drm_help_client_switch_mode_s(drm_client_ctx* client, const char* mode_s) {
+    if (mode_s != NULL)
+        send_cmd(client, "set mode", mode_s);
+}
+
+void drm_help_client_set_connector_properties(drm_client_ctx* client, const char* name, uint64_t value) {
+    set_properties(client, "set connector range properties", name, value);
+}
 
 void free_modes(drm_output_mode_list* data) {
     if (data->next != NULL) {

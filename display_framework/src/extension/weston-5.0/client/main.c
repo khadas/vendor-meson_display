@@ -10,25 +10,32 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <sys/wait.h>
+#include <json.h>
 #include "drm-help-client.h"
 #include <stdio.h>
 #include <getopt.h>
+#include <string.h>
 
 
-static const char* short_option = "F:R:";
+static const char* short_option = "";
 static const struct option long_option[] = {
         {"list-modes", no_argument, 0, 'l'},
         {"chang-mode", required_argument, 0, 'c'},
-        {"raw-cmd", no_argument, 0, 'r'},
+        {"get-property", required_argument, 0, 'g'},
+        {"set-property", required_argument, 0, 's'},
+        {"raw-cmd", required_argument, 0, 'r'},
         {0, 0, 0, 0}
 };
 
 static void print_usage(const char* name) {
-        printf("Usage: %s [-lcr]\n"
+        printf("Usage: %s [-lcrgs]\n"
                "Get or change the mode setting of the weston drm output.\n"
                "Options:\n"
                "       -l,--list-modes        \tlist connector support modes\n"
                "       -c,--change-mode MODE  \tchange connector current mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
+               "       -g,--get-connector-property \"PROPERTY\"\tget connector property\n"
+               "       -s,--set-connector-property \"PROPERTY\"=value\tset connector property\n"
+               "                               \t eg: \"Content Protection\"=1\n"
                "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -54,28 +61,6 @@ static void list_modes(drm_client_ctx* client) {
     free_connection_list(conn);
 }
 
-
-static void switch_mode(drm_client_ctx* client, char* mode) {
-    if (mode != NULL)
-        send_cmd(client, "set mode", mode);
-}
-
-/*
-static void interactive_mode(drm_client_ctx* client, const char* tip) {
-    printf("into interactive mode\n");
-    const char* cmd;
-    for (;;) {
-        cmd = readline(tip);
-        if (strcmp("exit", cmd) == 0 ||
-            strcmp("quit", cmd)) {
-            return;
-        }
-        send_cmd(client, "cmd", "");
-
-    }
-}
-*/
-
 int main(int argc, char* argv[]) {
     drm_client_ctx* client;
     if (argc == 1) {
@@ -88,21 +73,55 @@ int main(int argc, char* argv[]) {
     } while (client == NULL);
 
     int opt;
+    json_object* ret;
     while ((opt = getopt_long_only(argc, argv, short_option, long_option, NULL)) != -1) {
         switch (opt) {
             case 'l':
                 list_modes(client);
                 break;
             case 'c':
-                switch_mode(client, optarg);
+                drm_help_client_switch_mode_s(client, optarg);
+                break;
+            case 'g':
+                if (optarg == NULL)
+                    break;
+                ret = send_cmd_sync(client, "get connector range properties", optarg);
+                if (ret != NULL) {
+                    printf("%s", json_object_to_json_string(ret));
+                    json_object_put(ret);
+                }
+                break;
+            case 's':
+                if (optarg == NULL)
+                    break;
+                {
+                    char name[32] = {0};
+                    uint64_t value = 0;
+                    int count = 0;
+                    count = sscanf(optarg, "%32[^=]=%"SCNu64, name, &value);
+                    if (count == 2) {
+                        drm_help_client_set_connector_properties(client, name, value);
+                        DEBUG_INFO("Set %s = %"PRIu64, name ,value);
+                    } else {
+                        DEBUG_INFO("Set properties format error");
+                    }
+                }
                 break;
             case 'r':
-                if (optarg)
+                if (optarg == NULL)
+                    break;
+                if (strcmp("get ", optarg) == 0) {
+                    ret = send_cmd_sync(client, optarg, NULL);
+                    if (ret != NULL) {
+                        printf("%s", json_object_to_json_string(ret));
+                        json_object_put(ret);
+                    }
+                } else {
                     send_cmd(client, optarg,"");
+                }
                 break;
             default:
                 print_usage(argv[0]);
-                return -1;
         }
     };
 

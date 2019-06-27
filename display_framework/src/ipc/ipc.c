@@ -202,6 +202,7 @@ server_ctx* server_create(const char* type) {
         return NULL;
     }
 
+    ctx->name = NULL;
     strncpy(ctx->type, type, sizeof(ctx->type));
     SERVER_SOCKET_PATH(pip_name, ctx->type);
     int ret = socket_create(pip_name, &server_socket, SOCKET_LISTENER);
@@ -210,6 +211,7 @@ server_ctx* server_create(const char* type) {
         free(ctx);
         return NULL;
     }
+    ctx->name = strdup(pip_name);
     ctx->setup_sfd = server_socket;
     FD_ZERO(&ctx->socket_set);
     FD_SET(server_socket, &ctx->socket_set);
@@ -296,6 +298,11 @@ static void* server_routine_start(void* arg) {
         }
     }
     if (ctx->status == SERVER_GOINGTOSTOP) {
+        for (i = 0; i < ctx->connector_count; i++) {
+            close(ctx->sfd[i]);
+            ctx->sfd[i] = -1;
+        }
+        ctx->connector_count = 0;
         ctx->status = SERVER_STOPED;
     }
     return NULL;
@@ -321,6 +328,7 @@ client_ctx* client_create(const char* type) {
     if (ctx == NULL) {
         return NULL;
     }
+    ctx->name = NULL;
     strncpy(ctx->type, type, sizeof(ctx->type));
     CLIENT_SOCKET_PATH(pip_name, type);
     int ret = socket_create(pip_name, &client_socket, SOCKET_NOLISTERNER);
@@ -329,6 +337,7 @@ client_ctx* client_create(const char* type) {
         free(ctx);
         return NULL;
     }
+    ctx->name = strdup(pip_name);
     //Connect with server socket
     SERVER_SOCKET_PATH(pip_name, ctx->type);
     ret = socket_connect(client_socket, pip_name);
@@ -391,6 +400,13 @@ int server_destory(server_ctx* ctx) {
             default:
                  DEBUG_INFO("IPC server status error");
         }
+        if (ctx->setup_sfd != 0) {
+            close(ctx->setup_sfd);
+        }
+        if (ctx->name != NULL) {
+            unlink(ctx->name);
+            free(ctx->name);
+        }
         pthread_join(ctx->thread_id, NULL);
 
         free(ctx);
@@ -403,6 +419,10 @@ int server_destory(server_ctx* ctx) {
 int client_destory(client_ctx* ctx) {
     if (ctx != NULL) {
         close(ctx->fd);
+        if (ctx->name != NULL) {
+            unlink(ctx->name);
+            free(ctx->name);
+        }
         free(ctx);
     }
     return 0;

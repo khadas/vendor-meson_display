@@ -21,16 +21,16 @@ libjsonipc_la_SOURCES = src/ipc/ipc.h src/ipc/ipc.c
 
 libweston_drm_helper_la_LDFLAGS = -avoid-version
 libweston_drm_helper_la_SOURCES = \
-	src/extension/weston-5.0/compositor-drm-help.h \
-	src/extension/weston-5.0/compositor-drm-help.c
+	src/extension/weston-6.0/compositor-drm-help.h \
+	src/extension/weston-6.0/compositor-drm-help.c
 libweston_drm_helper_la_LIBADD = $(LIBDRM_LIBS) $(JSONC_LIBS) libjsonipc.la
 libweston_drm_helper_la_CFLAGS = $(LIBDRM_CFLAGS)
 
 drm_helper_client_CFLAGS =
 drm_helper_client_SOURCES = \
-	src/extension/weston-5.0/client/main.c \
-	src/extension/weston-5.0/client/drm-help-client.c \
-	src/extension/weston-5.0/client/drm-help-client.h
+	src/extension/weston-6.0/client/main.c \
+	src/extension/weston-6.0/client/drm-help-client.c \
+	src/extension/weston-6.0/client/drm-help-client.h
 drm_helper_client_LDADD = libjsonipc.la
 
 
@@ -39,10 +39,10 @@ test_SOURCES = src/ipc/test/test_main.c
 test_LDADD = libjsonipc.la
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = src/extension/weston-5.0/libweston-drm-helper.pc
+pkgconfig_DATA = src/extension/weston-6.0/libweston-drm-helper.pc
 
 weston_drm_helperdir = $(includedir)/weston-drm-helper
-weston_drm_helper_HEADERS = src/extension/weston-5.0/compositor-drm-help.h
+weston_drm_helper_HEADERS = src/extension/weston-6.0/compositor-drm-help.h
 
 
 

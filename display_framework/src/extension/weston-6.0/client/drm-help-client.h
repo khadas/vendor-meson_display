@@ -12,7 +12,9 @@
 extern "C" {
 #endif
 #include <stdint.h>
+#include <stdbool.h>
 #include <json.h>
+#include <inttypes.h>
 
 #if DEBUG
 #include <time.h>
@@ -22,45 +24,80 @@ extern "C" {
 #else
 #define DEBUG_INFO(fmt, arg...)
 #endif //DEBUG
+#ifndef DRM_DISPLAY_MODE_LEN
+#define DRM_DISPLAY_MODE_LEN 32
+#endif
 
-typedef void drm_client_ctx;
-typedef struct _drm_output_mode {
-    char* name;
-    int width;
-    int height;
-    uint32_t refresh;
-} drm_output_mode;
+    typedef enum _opt_type {
+        OPT_TYPE_NULL = 0,
+        OPT_TYPE_DOUBLE,
+        OPT_TYPE_INT,
+        OPT_TYPE_STRING,
+        OPT_TYPE_JSON_OBJECT,
+        OPT_TYPE_MAX,
+    } opt_type;
 
-typedef struct _drm_output_mode_list {
-    drm_output_mode mode;
-    struct _drm_output_mode_list* next;
-} drm_output_mode_list;
+    typedef void drm_client_ctx;
+    typedef struct _drm_output_mode {
+        char name[DRM_DISPLAY_MODE_LEN];
+        uint32_t width;
+        uint32_t height;
+        uint32_t refresh;
+    } drm_output_mode;
 
-typedef struct _drm_connection_list {
-    int id;
-    int type;
-    int encoder_id;
-    int mmWidth;
-    int mmHeight;
-    int count_encoders;
-    int count_modes;
-    drm_output_mode_list* modes;
-    struct _drm_connection_list* next;
-} drm_connection_list;
+    typedef struct _drm_output_rect {
+        int32_t x,y;
+        uint32_t w,h;
+    } drm_output_rect;
 
-drm_client_ctx* drm_help_client_create(void);
+    typedef struct _drm_output_mode_list {
+        drm_output_mode mode;
+        struct _drm_output_mode_list* next;
+    } drm_output_mode_list;
 
-void drm_help_client_destory(drm_client_ctx* client);
+    typedef struct _drm_connection_list {
+        int id;
+        int type;
+        int encoder_id;
+        int mmWidth;
+        int mmHeight;
+        int count_encoders;
+        int count_modes;
+        drm_output_mode_list* modes;
+        struct _drm_connection_list* next;
+    } drm_connection_list;
 
-drm_connection_list* drm_help_client_get_connection(drm_client_ctx* client);
+    /* connect with display server which under compositor */
+    drm_client_ctx* drm_help_client_create(void);
 
-void drm_help_client_switch_mode(drm_client_ctx* client, drm_output_mode* mode);
-void drm_help_client_switch_mode_s(drm_client_ctx* client, const char* mode_s);
-void drm_help_client_set_connector_properties(drm_client_ctx* client, const char* name, uint64_t value);
-void free_modes(drm_output_mode_list* data);
-void free_connection_list(drm_connection_list* data);
-void send_cmd(drm_client_ctx* client, const char* cmd, const char* opt);
-json_object* send_cmd_sync(drm_client_ctx* client, const char* cmd, const char* opt);
+    /* disconect with display server */
+    void drm_help_client_destory(drm_client_ctx* client);
+
+    /* get connector support display-mode list */
+    drm_connection_list* drm_help_client_get_connection(drm_client_ctx* client);
+
+    /* get physical display mode, which include display-mode name resolution and refresh rate. */
+    bool drm_help_client_get_display_mode(drm_client_ctx* client, drm_output_mode* mode, int connection_id);
+
+    /* get system logic ui rect, which aware by app. */
+    bool drm_help_client_get_ui_rect(drm_client_ctx* client, drm_output_rect* rect, int connection_id);
+
+    /* set system logic ui rect, current not work well */
+    void drm_help_client_set_ui_rect(drm_client_ctx* client, drm_output_rect* rect, int connection_id);
+
+    /* set connector display mode */
+    void drm_help_client_switch_mode_s(drm_client_ctx* client, const char* mode_s, int connection_id);
+
+    /* set connector's drm properties*/
+    void drm_help_client_set_connector_properties(drm_client_ctx* client, const char* name, uint64_t value);
+
+    void free_modes(drm_output_mode_list* data);
+
+    void free_connection_list(drm_connection_list* data);
+
+    void send_cmd(drm_client_ctx* client, const char* cmd, void* opt, opt_type type);
+
+    json_object* send_cmd_sync(drm_client_ctx* client, const char* cmd, void* opt, opt_type type);
 
 #ifdef __cplusplus
 }

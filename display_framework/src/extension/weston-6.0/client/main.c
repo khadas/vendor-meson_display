@@ -19,24 +19,27 @@
 
 static const char* short_option = "";
 static const struct option long_option[] = {
-        {"list-modes", no_argument, 0, 'l'},
-        {"chang-mode", required_argument, 0, 'c'},
-        {"get-property", required_argument, 0, 'g'},
-        {"set-property", required_argument, 0, 's'},
-        {"raw-cmd", required_argument, 0, 'r'},
-        {0, 0, 0, 0}
+    {"list-modes", no_argument, 0, 'l'},
+    {"chang-mode", required_argument, 0, 'c'},
+    {"get-property", required_argument, 0, 'g'},
+    {"set-property", required_argument, 0, 's'},
+    {"raw-cmd", required_argument, 0, 'r'},
+    {"G", required_argument, 0, 'G'},
+    {"S", required_argument, 0, 'S'},
+    {0, 0, 0, 0}
 };
 
 static void print_usage(const char* name) {
-        printf("Usage: %s [-lcrgs]\n"
-               "Get or change the mode setting of the weston drm output.\n"
-               "Options:\n"
-               "       -l,--list-modes        \tlist connector support modes\n"
-               "       -c,--change-mode MODE  \tchange connector current mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
-               "       -g,--get-connector-property \"PROPERTY\"\tget connector property\n"
-               "       -s,--set-connector-property \"PROPERTY\"=value\tset connector property\n"
-               "                               \t eg: \"Content Protection\"=1\n"
-               "       -r,--raw-cmd           \tsend raw cmd\n", name);
+    printf("Usage: %s [-lcrgsGS]\n"
+            "Get or change the mode setting of the weston drm output.\n"
+            "Options:\n"
+            "       -l,--list-modes        \tlist connector support modes\n"
+            "       -c,--change-mode MODE  \tchange connector current mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
+            "       -g,--get-connector-property \"PROPERTY\"\tget connector property\n"
+            "       -s,--set-connector-property \"[Content Protection]\"=value\tset connector property\n"
+            "       -G \"[ui-rect|display-mode]\"\tget [logic ui rect|display mode]\n"
+            "       -S \"[ui-rect]\"\tset [logic ui rect]\n"
+            "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
 static void list_modes(drm_client_ctx* client) {
@@ -62,6 +65,7 @@ static void list_modes(drm_client_ctx* client) {
 }
 
 int main(int argc, char* argv[]) {
+    int ret = 0;
     drm_client_ctx* client;
     if (argc == 1) {
         print_usage(argv[0]);
@@ -73,27 +77,25 @@ int main(int argc, char* argv[]) {
     } while (client == NULL);
 
     int opt;
-    json_object* ret;
+    json_object* reply;
     while ((opt = getopt_long_only(argc, argv, short_option, long_option, NULL)) != -1) {
         switch (opt) {
             case 'l':
                 list_modes(client);
                 break;
             case 'c':
-                drm_help_client_switch_mode_s(client, optarg);
+                drm_help_client_switch_mode_s(client, optarg, 0);
                 break;
             case 'g':
-                if (optarg == NULL)
-                    break;
-                ret = send_cmd_sync(client, "get connector range properties", optarg);
-                if (ret != NULL) {
-                    printf("%s", json_object_to_json_string(ret));
-                    json_object_put(ret);
+                reply = send_cmd_sync(client, "get connector range properties", &optarg, OPT_TYPE_STRING);
+                if (reply != NULL) {
+                    printf("%s\n", json_object_to_json_string(reply));
+                    json_object_put(reply);
+                } else {
+                    ret = -1;
                 }
                 break;
             case 's':
-                if (optarg == NULL)
-                    break;
                 {
                     char name[32] = {0};
                     uint64_t value = 0;
@@ -104,20 +106,64 @@ int main(int argc, char* argv[]) {
                         DEBUG_INFO("Set %s = %"PRIu64, name ,value);
                     } else {
                         DEBUG_INFO("Set properties format error");
+                        ret = -1;
                     }
                 }
                 break;
-            case 'r':
-                if (optarg == NULL)
-                    break;
-                if (strcmp("get ", optarg) == 0) {
-                    ret = send_cmd_sync(client, optarg, NULL);
-                    if (ret != NULL) {
-                        printf("%s", json_object_to_json_string(ret));
-                        json_object_put(ret);
+            case 'G':
+                if (strcmp("ui-rect", optarg) == 0) {
+                    drm_output_rect rect;
+                    if (drm_help_client_get_ui_rect(client, &rect, 0)) {
+                        printf("%"PRId32",%"PRId32",%"PRId32",%"PRId32"\n", rect.x, rect.y, rect.w, rect.h);
+                    } else {
+                        DEBUG_INFO("get ui-rect failed");
+                        ret = -1;
+                    }
+                } else if (strcmp("display-mode", optarg) == 0) {
+                    drm_output_mode mode;
+                    if (drm_help_client_get_display_mode(client, &mode, 0)) {
+                        printf("%s,%"PRId32",%"PRId32",%"PRIu32"\n", mode.name, mode.width, mode.height, mode.refresh);
+                    } else {
+                        ret = -1;
                     }
                 } else {
-                    send_cmd(client, optarg,"");
+                    DEBUG_INFO("cmd not recognized");
+                    ret = -1;
+                }
+                break;
+            case 'S':
+                if (strcmp("ui-rect", optarg) == 0) {
+                    if (optind + 4 > argc) {
+                        DEBUG_INFO("miss rect parameter");
+                        ret = -1;
+                        break;
+                    }
+                    drm_output_rect rect;
+                    rect.x = atoi(argv[optind]);
+                    optind++;
+                    rect.y = atoi(argv[optind]);
+                    optind++;
+                    rect.w = atoi(argv[optind]);
+                    optind++;
+                    rect.h = atoi(argv[optind]);
+                    optind++;
+                    DEBUG_INFO("set ui rect to %d,%d,%dx%d", rect.x, rect.y, rect.w, rect.h);
+                    drm_help_client_set_ui_rect(client, &rect, 0);
+                } else {
+                    DEBUG_INFO("cmd not recognized");
+                    ret = -1;
+                }
+                break;
+
+            case 'r':
+                if (strcmp("get ", optarg) == 0) {
+                    reply = send_cmd_sync(client, optarg, NULL, OPT_TYPE_NULL);
+                    if (reply != NULL) {
+                        printf("%s\n", json_object_to_json_string(reply));
+                        json_object_put(reply);
+                    }
+                } else {
+                    send_cmd(client, optarg, NULL, OPT_TYPE_NULL);
                 }
                 break;
             default:
@@ -127,5 +173,5 @@ int main(int argc, char* argv[]) {
 
     drm_help_client_destory(client);
     DEBUG_INFO("Exit client");
-    return 0;
+    return ret;
 }

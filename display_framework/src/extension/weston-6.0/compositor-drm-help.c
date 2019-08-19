@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <assert.h>
+#include <pthread.h>
 #include "compositor-drm-help.h"
 #include "ipc/ipc.h"
 
@@ -69,7 +70,8 @@ typedef struct _connector_list {
  * mutex : for the globle value.
  * g_server_ctx : use to save a only one instance ipc server context
  * global_connector_list : the connector list current.
-*/
+ * g_ui_viewport : the ui viewport.
+ */
 output_ctx g_output = NULL;
 switch_mode g_switch_mode_fun = NULL;
 pthread_mutex_t mutex;
@@ -77,12 +79,17 @@ server_ctx* g_server_ctx = NULL;
 int g_drm_fd = -1;
 int g_atomic_modeset_enable = 0;
 connector_list global_connector_list = {.prev = NULL,.next = NULL,};
+pthread_rwlock_t info_rwlock;
+bool g_ui_viewport_need_modify = false;
+drm_helper_rect g_ui_viewport = { 0, 0, 0, 0 };
+drm_helper_size g_ui_size = { 0, 0 };
+drmModeModeInfo g_display_mode;
 
 
 
 /* TODO: reduce the codesize
  * NOTE :The format need same as the client's json resovle format.
-*/
+ */
 static json_object* dumpConnectorInfo(drmModeConnector* connector)
 {
     int i = 0;
@@ -201,7 +208,9 @@ void update_connector_props(connector_list* connector) {
    Note.need use json_object_put to decrease the ref of data_in
  */
 void m_message_handle(json_object* data_in, json_object** data_out) {
-    json_object* tmp;
+    int ret = 0;
+    json_object* tmp = NULL;
+    json_object* opt = NULL;
     *data_out = NULL;
     if (0 == json_object_object_get_ex(data_in, "cmd", &tmp)) {
         DEBUG_INFO("No cmd sended! (%s)", json_object_to_json_string(data_in));
@@ -210,26 +219,33 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
     }
     //cmd's buffer under the json object "data_in"
     const char* cmd = json_object_get_string(tmp);
+
+    json_object_object_get_ex(data_in, "value", &opt);
     DEBUG_INFO("Handle CMD:%s", cmd);
-    if (0 == strcmp("set mode", cmd) &&
-        0 != json_object_object_get_ex(data_in, "value", &tmp)) {
-        const char* value = json_object_get_string(tmp);
-        DEBUG_INFO("CMD set mode :%s", value);
-        drm_helper_mode m;
-        if (3 != sscanf(value, "%dx%d@%d", &m.width, &m.height, &m.refresh/*, &aspect_width, &aspect_height*/)) {
-            DEBUG_INFO("The Value format error");
+    if (0 == strcmp("set mode", cmd)) {
+        if (opt == NULL) {
+            ret = -1;
         } else {
-            pthread_mutex_lock(&mutex);
-            if (g_output && g_switch_mode_fun) {
-                g_switch_mode_fun(g_output, &m);
+            const char* value = json_object_get_string(opt);
+            DEBUG_INFO("CMD set mode :%s", value);
+            drm_helper_mode m;
+            if (3 != sscanf(value, "%dx%d@%d", &m.width, &m.height, &m.refresh/*, &aspect_width, &aspect_height*/)) {
+                DEBUG_INFO("The Value format error");
+                ret = -1;
             } else {
-                if (g_switch_mode_fun == NULL) {
-                    DEBUG_INFO("Output not enabled");
+                pthread_mutex_lock(&mutex);
+                if (g_output && g_switch_mode_fun) {
+                    g_switch_mode_fun(g_output, &m);
                 } else {
-                    DEBUG_INFO("Output not ready");
+                    if (g_switch_mode_fun == NULL) {
+                        DEBUG_INFO("Output not enabled");
+                    } else {
+                        DEBUG_INFO("Output not ready");
+                    }
+                    ret = -1;
                 }
+                pthread_mutex_unlock(&mutex);
             }
-            pthread_mutex_unlock(&mutex);
         }
     } else if (0 == strcmp("get modes", cmd)) {
         connector_list* current;
@@ -246,64 +262,122 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
         }
         pthread_mutex_unlock(&mutex);
         DEBUG_INFO("Get modes :[%d]\n%s", strlen(json_object_to_json_string(*data_out)), json_object_to_json_string(*data_out));
-    } else if (0 == strcmp("set connector range properties", cmd) &&
-            0 != json_object_object_get_ex(data_in, "value", &tmp)) {
-        uint64_t value = 0;
-        json_object_object_foreach(tmp, name, json_value) {
-            if (name != NULL && strlen(name) != 0) {
-                int i;
-                for (i = 0; i < DRM_CONNECTOR_PROPERTY__COUNT; i++) {
-                    if (0 == strcmp(connector_props[i].name, name)) {
-                        break;
-                    }
-                }
-                if (i < DRM_CONNECTOR_PROPERTY__COUNT) {
-                    //have this properties.
-                    connector_list* current;
-                    //get value from json value
-                    errno = 0;
-                    value = (uint64_t)json_object_get_int64(json_value);
-                    if (errno != 0) {
-                        DEBUG_INFO("Set properties[%s] with issue value", name);
-                        continue;
-                    }
-                    pthread_mutex_lock(&mutex);
-                    for_each_list(current, &global_connector_list) {
-                        if (current->data) {
-                            current->props[i].need_change = 1;
-                            current->props[i].new_value = value;
+    } else if (0 == strcmp("set connector range properties", cmd)) {
+        if (opt == 0) {
+            ret = -1;
+        } else {
+            uint64_t value = 0;
+            json_object_object_foreach(opt , name, json_value) {
+                if (name != NULL && strlen(name) != 0) {
+                    int i;
+                    for (i = 0; i < DRM_CONNECTOR_PROPERTY__COUNT; i++) {
+                        if (0 == strcmp(connector_props[i].name, name)) {
+                            break;
                         }
                     }
-                    pthread_mutex_unlock(&mutex);
-                    DEBUG_INFO("Set properties[%s]=[%"PRIu64"] ", name, value);
+                    if (i < DRM_CONNECTOR_PROPERTY__COUNT) {
+                        //have this properties.
+                        connector_list* current;
+                        //get value from json value
+                        errno = 0;
+                        value = (uint64_t)json_object_get_int64(json_value);
+                        if (errno != 0) {
+                            DEBUG_INFO("Set properties[%s] with issue value", name);
+                            continue;
+                        }
+                        pthread_mutex_lock(&mutex);
+                        for_each_list(current, &global_connector_list) {
+                            if (current->data) {
+                                current->props[i].need_change = 1;
+                                current->props[i].new_value = value;
+                            }
+                        }
+                        pthread_mutex_unlock(&mutex);
+                        DEBUG_INFO("Set properties[%s]=[%"PRIu64"] ", name, value);
+                    }
                 }
             }
         }
-    } else if (0 == strcmp("get connector range properties", cmd) &&
-            0 != json_object_object_get_ex(data_in, "value", &tmp)) {
-        connector_list* current;
-        char buf[5] = {0};
-        const char* name = json_object_get_string(tmp);
-        if (name != NULL && strlen(name) != 0) {
-            *data_out = json_object_new_object();
-            pthread_mutex_lock(&mutex);
-            for_each_list(current, &global_connector_list) {
-                if (current->data) {
-                    int status = -1;
-                    get_range_properties(CONNECTOR, current->data->connector_id, name, &status);
-                    snprintf(buf,sizeof(buf), "%d", current->data->connector_id);
-                    json_object_object_add(*data_out, buf, json_object_new_int(status));
+    } else if (0 == strcmp("get connector range properties", cmd)) {
+        if (opt == 0) {
+            ret = -1;
+        } else {
+            connector_list* current;
+            char buf[5] = {0};
+            const char* name = json_object_get_string(opt);
+            if (name != NULL && strlen(name) != 0) {
+                *data_out = json_object_new_object();
+                pthread_mutex_lock(&mutex);
+                for_each_list(current, &global_connector_list) {
+                    if (current->data) {
+                        int status = -1;
+                        get_range_properties(CONNECTOR, current->data->connector_id, name, &status);
+                        snprintf(buf,sizeof(buf), "%d", current->data->connector_id);
+                        json_object_object_add(*data_out, buf, json_object_new_int(status));
+                    }
                 }
+                pthread_mutex_unlock(&mutex);
             }
-            pthread_mutex_unlock(&mutex);
+            DEBUG_INFO("Get properties[%s]:[%d]\n%s", name, strlen(json_object_to_json_string(*data_out)), json_object_to_json_string(*data_out));
         }
-        DEBUG_INFO("Get properties[%s]:[%d]\n%s", name, strlen(json_object_to_json_string(*data_out)), json_object_to_json_string(*data_out));
+    } else if (0 == strcmp("get display mode", cmd)) {
+        *data_out = json_object_new_object();
+        pthread_rwlock_rdlock(&info_rwlock);
+        ret |= json_object_object_add(*data_out, "name", json_object_new_string(g_display_mode.name));
+        ret |= json_object_object_add(*data_out, "vrefresh", json_object_new_int(g_display_mode.vrefresh));
+        ret |= json_object_object_add(*data_out, "hdisplay", json_object_new_int(g_display_mode.hdisplay));
+        ret |= json_object_object_add(*data_out, "vdisplay", json_object_new_int(g_display_mode.vdisplay));
+        pthread_rwlock_unlock(&info_rwlock);
+        if (ret != 0) {
+            DEBUG_INFO("Send display mode with error");
+        }
+    } else if (0 == strcmp("get ui rect", cmd)) {
+        *data_out = json_object_new_object();
+        pthread_rwlock_rdlock(&info_rwlock);
+        ret |= json_object_object_add(*data_out, "x", json_object_new_int(g_ui_viewport.x));
+        ret |= json_object_object_add(*data_out, "y", json_object_new_int(g_ui_viewport.y));
+        ret |= json_object_object_add(*data_out, "w", json_object_new_int(g_ui_viewport.w));
+        ret |= json_object_object_add(*data_out, "h", json_object_new_int(g_ui_viewport.h));
+        pthread_rwlock_unlock(&info_rwlock);
+        if (ret != 0) {
+            DEBUG_INFO("Send ui rect with error");
+        }
+    } else if (0 == strcmp("set ui rect", cmd)) {
+        if (opt != NULL) {
+            DEBUG_INFO("Set ui rect");
+            drm_helper_rect rect;
+            errno = 0;
+            rect.x = json_object_get_int(json_object_object_get(opt, "x"));
+            ret |= errno;
+            rect.y = json_object_get_int(json_object_object_get(opt, "y"));
+            ret |= errno;
+            rect.w = json_object_get_int(json_object_object_get(opt, "w"));
+            ret |= errno;
+            rect.h = json_object_get_int(json_object_object_get(opt, "h"));
+            ret |= errno;
+            if (ret == 0) {
+                pthread_rwlock_wrlock(&info_rwlock);
+                g_ui_viewport_need_modify = false;
+                usleep(2000);
+                g_ui_viewport = rect;
+                g_ui_viewport_need_modify = true;
+                pthread_rwlock_unlock(&info_rwlock);
+            } else {
+                DEBUG_INFO("Set ui rect with error");
+            }
+        } else {
+            ret = -1;
+            DEBUG_INFO("Set ui rect with error opt");
+        }
     } else if (0 == strcmp("get ", cmd)) {
         DEBUG_INFO("CMD[%s] not support or incorrect parameter!", cmd);
         //reply a empty json object to avoid client block.
         *data_out = json_object_new_object();
     }
     json_object_put(data_in);
+    if (ret != 0) {
+        DEBUG_INFO("CMD[%s] handle failed!", cmd);
+    }
 }
 
 void start_help_worker(int drm_fd, int atomic_modeset_enable) {
@@ -377,6 +451,37 @@ void help_update_connector(drmModeConnector* old_connector, drmModeConnector* ne
         help_append_connector(new_connector);
     }
 }
+
+
+void help_get_scanout_viewport(int32_t* x, int32_t* y, uint32_t* w, uint32_t* h) {
+    if (g_ui_viewport_need_modify) {
+        *x = g_ui_viewport.x;
+        *y = g_ui_viewport.y;
+        *w = g_ui_viewport.w;
+        *h = g_ui_viewport.h;
+    }
+    return;
+}
+
+void help_update_ui_logic_size_info(uint32_t w, uint32_t h) {
+    pthread_rwlock_wrlock(&info_rwlock);
+    g_ui_size.w = w;
+    g_ui_size.h = h;
+    if (!g_ui_viewport_need_modify) {
+        g_ui_viewport.x = 0;
+        g_ui_viewport.y = 0;
+        g_ui_viewport.w = w;
+        g_ui_viewport.h = h;
+    }
+    pthread_rwlock_unlock(&info_rwlock);
+}
+
+void help_update_display_mode_info(drmModeModeInfo* mode) {
+    pthread_rwlock_wrlock(&info_rwlock);
+    memcpy(&g_display_mode, mode, sizeof(drmModeModeInfo));
+    pthread_rwlock_unlock(&info_rwlock);
+}
+
 
 void help_delete_connector(drmModeConnector* connector) {
     if (connector == NULL) {

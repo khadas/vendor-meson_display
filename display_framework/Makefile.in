@@ -142,14 +142,23 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(weston_drm_helperdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES) $(noinst_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-libjsonipc_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+libdrm_helper_client_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	libjsonipc.la
 am__dirstamp = $(am__leading_dot)dirstamp
-am_libjsonipc_la_OBJECTS = src/ipc/ipc.lo
-libjsonipc_la_OBJECTS = $(am_libjsonipc_la_OBJECTS)
+am_libdrm_helper_client_la_OBJECTS = src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo
+libdrm_helper_client_la_OBJECTS =  \
+	$(am_libdrm_helper_client_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+libdrm_helper_client_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libdrm_helper_client_la_CFLAGS) $(CFLAGS) \
+	$(libdrm_helper_client_la_LDFLAGS) $(LDFLAGS) -o $@
+libjsonipc_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_libjsonipc_la_OBJECTS = src/ipc/ipc.lo
+libjsonipc_la_OBJECTS = $(am_libjsonipc_la_OBJECTS)
 libjsonipc_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(libjsonipc_la_LDFLAGS) $(LDFLAGS) -o $@
@@ -163,10 +172,10 @@ libweston_drm_helper_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(libweston_drm_helper_la_CFLAGS) $(CFLAGS) \
 	$(libweston_drm_helper_la_LDFLAGS) $(LDFLAGS) -o $@
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
-am_drm_helper_client_OBJECTS = src/extension/weston-6.0/client/drm_helper_client-main.$(OBJEXT) \
-	src/extension/weston-6.0/client/drm_helper_client-drm-help-client.$(OBJEXT)
+am_drm_helper_client_OBJECTS = src/extension/weston-6.0/client/drm_helper_client-main.$(OBJEXT)
 drm_helper_client_OBJECTS = $(am_drm_helper_client_OBJECTS)
-drm_helper_client_DEPENDENCIES = libjsonipc.la
+drm_helper_client_DEPENDENCIES = libdrm-helper-client.la \
+	$(am__DEPENDENCIES_1)
 drm_helper_client_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(drm_helper_client_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
@@ -211,10 +220,11 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libjsonipc_la_SOURCES) $(libweston_drm_helper_la_SOURCES) \
-	$(drm_helper_client_SOURCES) $(test_SOURCES)
-DIST_SOURCES = $(libjsonipc_la_SOURCES) \
+SOURCES = $(libdrm_helper_client_la_SOURCES) $(libjsonipc_la_SOURCES) \
 	$(libweston_drm_helper_la_SOURCES) \
+	$(drm_helper_client_SOURCES) $(test_SOURCES)
+DIST_SOURCES = $(libdrm_helper_client_la_SOURCES) \
+	$(libjsonipc_la_SOURCES) $(libweston_drm_helper_la_SOURCES) \
 	$(drm_helper_client_SOURCES) $(test_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -278,6 +288,10 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+CXXDEPMODE = @CXXDEPMODE@
+CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
@@ -341,6 +355,7 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
+ac_ct_CXX = @ac_ct_CXX@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
@@ -391,7 +406,9 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = subdir-objects
 noinst_LTLIBRARIES = libjsonipc.la
-lib_LTLIBRARIES = libweston-drm-helper.la
+lib_LTLIBRARIES = libweston-drm-helper.la \
+	libdrm-helper-client.la
+
 AM_CFLAGS = -Isrc	\
 	-Isrc/ipc	\
 	-Isrc/extension	 \
@@ -412,20 +429,30 @@ libweston_drm_helper_la_SOURCES = \
 
 libweston_drm_helper_la_LIBADD = $(LIBDRM_LIBS) $(JSONC_LIBS) libjsonipc.la
 libweston_drm_helper_la_CFLAGS = $(LIBDRM_CFLAGS)
-drm_helper_client_CFLAGS = 
-drm_helper_client_SOURCES = \
-	src/extension/weston-6.0/client/main.c \
+libdrm_helper_client_la_LDFLAGS = -avoid-version
+libdrm_helper_client_la_SOURCES = \
 	src/extension/weston-6.0/client/drm-help-client.c \
 	src/extension/weston-6.0/client/drm-help-client.h
 
-drm_helper_client_LDADD = libjsonipc.la
+libdrm_helper_client_la_LIBADD = $(JSONC_LIBS) libjsonipc.la
+libdrm_helper_client_la_CFLAGS = $(JSONC_CFLAGS)
+drm_helper_client_CFLAGS = 
+drm_helper_client_SOURCES = \
+	src/extension/weston-6.0/client/main.c
+
+drm_helper_client_LDADD = libdrm-helper-client.la $(JSONC_LIBS)
 test_CFLAGS = -DDEBUG
 test_SOURCES = src/ipc/test/test_main.c
 test_LDADD = libjsonipc.la
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = src/extension/weston-6.0/libweston-drm-helper.pc
+pkgconfig_DATA = \
+	src/extension/weston-6.0/libweston-drm-helper.pc
+
 weston_drm_helperdir = $(includedir)/weston-drm-helper
-weston_drm_helper_HEADERS = src/extension/weston-6.0/compositor-drm-help.h
+weston_drm_helper_HEADERS = \
+	src/extension/weston-6.0/compositor-drm-help.h \
+	src/extension/weston-6.0/client/drm-help-client.h
+
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -525,6 +552,18 @@ clean-noinstLTLIBRARIES:
 	  echo rm -f $${locs}; \
 	  rm -f $${locs}; \
 	}
+src/extension/weston-6.0/client/$(am__dirstamp):
+	@$(MKDIR_P) src/extension/weston-6.0/client
+	@: > src/extension/weston-6.0/client/$(am__dirstamp)
+src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) src/extension/weston-6.0/client/$(DEPDIR)
+	@: > src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp)
+src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo:  \
+	src/extension/weston-6.0/client/$(am__dirstamp) \
+	src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp)
+
+libdrm-helper-client.la: $(libdrm_helper_client_la_OBJECTS) $(libdrm_helper_client_la_DEPENDENCIES) $(EXTRA_libdrm_helper_client_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libdrm_helper_client_la_LINK) -rpath $(libdir) $(libdrm_helper_client_la_OBJECTS) $(libdrm_helper_client_la_LIBADD) $(LIBS)
 src/ipc/$(am__dirstamp):
 	@$(MKDIR_P) src/ipc
 	@: > src/ipc/$(am__dirstamp)
@@ -606,16 +645,7 @@ clean-noinstPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-src/extension/weston-6.0/client/$(am__dirstamp):
-	@$(MKDIR_P) src/extension/weston-6.0/client
-	@: > src/extension/weston-6.0/client/$(am__dirstamp)
-src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) src/extension/weston-6.0/client/$(DEPDIR)
-	@: > src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp)
 src/extension/weston-6.0/client/drm_helper_client-main.$(OBJEXT):  \
-	src/extension/weston-6.0/client/$(am__dirstamp) \
-	src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp)
-src/extension/weston-6.0/client/drm_helper_client-drm-help-client.$(OBJEXT):  \
 	src/extension/weston-6.0/client/$(am__dirstamp) \
 	src/extension/weston-6.0/client/$(DEPDIR)/$(am__dirstamp)
 
@@ -640,6 +670,7 @@ mostlyclean-compile:
 	-rm -f src/extension/weston-6.0/*.$(OBJEXT)
 	-rm -f src/extension/weston-6.0/*.lo
 	-rm -f src/extension/weston-6.0/client/*.$(OBJEXT)
+	-rm -f src/extension/weston-6.0/client/*.lo
 	-rm -f src/ipc/*.$(OBJEXT)
 	-rm -f src/ipc/*.lo
 	-rm -f src/ipc/test/*.$(OBJEXT)
@@ -648,8 +679,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@src/extension/weston-6.0/$(DEPDIR)/libweston_drm_helper_la-compositor-drm-help.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/extension/weston-6.0/client/$(DEPDIR)/libdrm_helper_client_la-drm-help-client.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/ipc/$(DEPDIR)/ipc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/ipc/test/$(DEPDIR)/test-test_main.Po@am__quote@
 
@@ -677,6 +708,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
+src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo: src/extension/weston-6.0/client/drm-help-client.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdrm_helper_client_la_CFLAGS) $(CFLAGS) -MT src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo -MD -MP -MF src/extension/weston-6.0/client/$(DEPDIR)/libdrm_helper_client_la-drm-help-client.Tpo -c -o src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo `test -f 'src/extension/weston-6.0/client/drm-help-client.c' || echo '$(srcdir)/'`src/extension/weston-6.0/client/drm-help-client.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/extension/weston-6.0/client/$(DEPDIR)/libdrm_helper_client_la-drm-help-client.Tpo src/extension/weston-6.0/client/$(DEPDIR)/libdrm_helper_client_la-drm-help-client.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/extension/weston-6.0/client/drm-help-client.c' object='src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdrm_helper_client_la_CFLAGS) $(CFLAGS) -c -o src/extension/weston-6.0/client/libdrm_helper_client_la-drm-help-client.lo `test -f 'src/extension/weston-6.0/client/drm-help-client.c' || echo '$(srcdir)/'`src/extension/weston-6.0/client/drm-help-client.c
+
 src/extension/weston-6.0/libweston_drm_helper_la-compositor-drm-help.lo: src/extension/weston-6.0/compositor-drm-help.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libweston_drm_helper_la_CFLAGS) $(CFLAGS) -MT src/extension/weston-6.0/libweston_drm_helper_la-compositor-drm-help.lo -MD -MP -MF src/extension/weston-6.0/$(DEPDIR)/libweston_drm_helper_la-compositor-drm-help.Tpo -c -o src/extension/weston-6.0/libweston_drm_helper_la-compositor-drm-help.lo `test -f 'src/extension/weston-6.0/compositor-drm-help.c' || echo '$(srcdir)/'`src/extension/weston-6.0/compositor-drm-help.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/extension/weston-6.0/$(DEPDIR)/libweston_drm_helper_la-compositor-drm-help.Tpo src/extension/weston-6.0/$(DEPDIR)/libweston_drm_helper_la-compositor-drm-help.Plo
@@ -698,20 +736,6 @@ src/extension/weston-6.0/client/drm_helper_client-main.obj: src/extension/weston
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(drm_helper_client_CFLAGS) $(CFLAGS) -c -o src/extension/weston-6.0/client/drm_helper_client-main.obj `if test -f 'src/extension/weston-6.0/client/main.c'; then $(CYGPATH_W) 'src/extension/weston-6.0/client/main.c'; else $(CYGPATH_W) '$(srcdir)/src/extension/weston-6.0/client/main.c'; fi`
 
-src/extension/weston-6.0/client/drm_helper_client-drm-help-client.o: src/extension/weston-6.0/client/drm-help-client.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(drm_helper_client_CFLAGS) $(CFLAGS) -MT src/extension/weston-6.0/client/drm_helper_client-drm-help-client.o -MD -MP -MF src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Tpo -c -o src/extension/weston-6.0/client/drm_helper_client-drm-help-client.o `test -f 'src/extension/weston-6.0/client/drm-help-client.c' || echo '$(srcdir)/'`src/extension/weston-6.0/client/drm-help-client.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Tpo src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/extension/weston-6.0/client/drm-help-client.c' object='src/extension/weston-6.0/client/drm_helper_client-drm-help-client.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(drm_helper_client_CFLAGS) $(CFLAGS) -c -o src/extension/weston-6.0/client/drm_helper_client-drm-help-client.o `test -f 'src/extension/weston-6.0/client/drm-help-client.c' || echo '$(srcdir)/'`src/extension/weston-6.0/client/drm-help-client.c
-
-src/extension/weston-6.0/client/drm_helper_client-drm-help-client.obj: src/extension/weston-6.0/client/drm-help-client.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(drm_helper_client_CFLAGS) $(CFLAGS) -MT src/extension/weston-6.0/client/drm_helper_client-drm-help-client.obj -MD -MP -MF src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Tpo -c -o src/extension/weston-6.0/client/drm_helper_client-drm-help-client.obj `if test -f 'src/extension/weston-6.0/client/drm-help-client.c'; then $(CYGPATH_W) 'src/extension/weston-6.0/client/drm-help-client.c'; else $(CYGPATH_W) '$(srcdir)/src/extension/weston-6.0/client/drm-help-client.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Tpo src/extension/weston-6.0/client/$(DEPDIR)/drm_helper_client-drm-help-client.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/extension/weston-6.0/client/drm-help-client.c' object='src/extension/weston-6.0/client/drm_helper_client-drm-help-client.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(drm_helper_client_CFLAGS) $(CFLAGS) -c -o src/extension/weston-6.0/client/drm_helper_client-drm-help-client.obj `if test -f 'src/extension/weston-6.0/client/drm-help-client.c'; then $(CYGPATH_W) 'src/extension/weston-6.0/client/drm-help-client.c'; else $(CYGPATH_W) '$(srcdir)/src/extension/weston-6.0/client/drm-help-client.c'; fi`
-
 src/ipc/test/test-test_main.o: src/ipc/test/test_main.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_CFLAGS) $(CFLAGS) -MT src/ipc/test/test-test_main.o -MD -MP -MF src/ipc/test/$(DEPDIR)/test-test_main.Tpo -c -o src/ipc/test/test-test_main.o `test -f 'src/ipc/test/test_main.c' || echo '$(srcdir)/'`src/ipc/test/test_main.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/ipc/test/$(DEPDIR)/test-test_main.Tpo src/ipc/test/$(DEPDIR)/test-test_main.Po
@@ -732,6 +756,7 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 	-rm -rf src/extension/weston-6.0/.libs src/extension/weston-6.0/_libs
+	-rm -rf src/extension/weston-6.0/client/.libs src/extension/weston-6.0/client/_libs
 	-rm -rf src/ipc/.libs src/ipc/_libs
 
 distclean-libtool:
@@ -1151,6 +1176,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 
 .PRECIOUS: Makefile
 
+	src/extension/weston-6.0/client/libdrm-helper-client.pc
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

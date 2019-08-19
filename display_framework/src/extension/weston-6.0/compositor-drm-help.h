@@ -17,6 +17,7 @@ extern "C" {
 #include <xf86drmMode.h>
 #include <libudev.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * TODO:Add more mode info
@@ -25,6 +26,15 @@ typedef struct _drm_helper_mode {
      int32_t width, height;
      uint32_t refresh;
 } drm_helper_mode;
+
+typedef struct _drm_helper_rect {
+	int32_t  x, y;
+	uint32_t w, h;
+} drm_helper_rect;
+
+typedef struct _drm_helper_size {
+	uint32_t w, h;
+} drm_helper_size;
 
 typedef void* output_ctx;
 
@@ -45,6 +55,16 @@ void help_append_connector(drmModeConnector* connector);
 
 /*Call it when the connector updated */
 void help_update_connector(drmModeConnector* old_connector, drmModeConnector* new_connector);
+
+/* Call it when atomic set crtc property
+ * notes: w/h need left shift with 16 */
+void help_get_scanout_viewport(int32_t* x, int32_t* y, uint32_t* w, uint32_t* h);
+
+/*Call it when display ui size changed */
+void help_update_ui_logic_size_info(uint32_t w, uint32_t h);
+
+/*Call it when display mode changed */
+void help_update_display_mode_info(drmModeModeInfo* mode);
 
 /*Call it when connector go to disconnect*/
 void help_delete_connector(drmModeConnector* connector);

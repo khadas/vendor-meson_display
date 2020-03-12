@@ -43,6 +43,8 @@ typedef struct _drm_property_info {
  */
 enum drm_connector_property {
     DRM_CONNECTOR_PROPERTY_CP,
+    DRM_COLOR_DEPTH_CP,
+    DRM_COLOR_SPACE_CP,
     DRM_CONNECTOR_PROPERTY__COUNT
 };
 
@@ -50,6 +52,14 @@ enum drm_connector_property {
 static const drm_property_info connector_props[] = {
     [DRM_CONNECTOR_PROPERTY_CP] = {
         .name = "Content Protection",
+        .need_change = 0,
+    },
+    [DRM_COLOR_DEPTH_CP] = {
+        .name = "Color Depth",
+        .need_change = 0,
+    },
+    [DRM_COLOR_SPACE_CP] = {
+        .name = "Color Space",
         .need_change = 0,
     },
 };
@@ -203,6 +213,15 @@ void update_connector_props(connector_list* connector) {
     drmModeFreeObjectProperties(props);
 }
 
+bool is_hdmi_connector(connector_list* current) {
+    if (current->data &&
+            (current->data->connector_type == DRM_MODE_CONNECTOR_HDMIA ||
+             current->data->connector_type == DRM_MODE_CONNECTOR_HDMIB)) {
+        return true;
+    }
+    return false;
+}
+
 /*
    json formate:
    {
@@ -291,6 +310,11 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
                         }
                         pthread_mutex_lock(&mutex);
                         for_each_list(current, &global_connector_list) {
+                            if (!is_hdmi_connector(current)) {
+                                if (i == DRM_COLOR_DEPTH_CP || i == DRM_COLOR_SPACE_CP || i == DRM_CONNECTOR_PROPERTY_CP) {
+                                    continue;
+                                }
+                            }
                             if (current->data) {
                                 current->props[i].need_change = 1;
                                 current->props[i].new_value = value;

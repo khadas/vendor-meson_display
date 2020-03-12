@@ -36,7 +36,7 @@ static void print_usage(const char* name) {
             "       -l,--list-modes        \tlist connector support modes\n"
             "       -c,--change-mode MODE  \tchange connector current mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
             "       -g,--get-connector-property \"PROPERTY\"\tget connector property\n"
-            "       -s,--set-connector-property \"[Content Protection]\"=value\tset connector property\n"
+            "       -s,--set-connector-property \"[Content Protection | Color Depth | Color Space]\"=value\tset connector property\n"
             "       -G \"[ui-rect|display-mode]\"\tget [logic ui rect|display mode]\n"
             "       -S \"[ui-rect]\"\tset [logic ui rect]\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);

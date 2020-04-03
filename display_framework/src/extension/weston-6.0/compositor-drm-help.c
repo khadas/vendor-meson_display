@@ -7,6 +7,7 @@
  * Description:
  */
 
+//#define DEBUG 1
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -90,11 +91,14 @@ drmModeModeInfo g_display_mode;
 /* TODO: reduce the codesize
  * NOTE :The format need same as the client's json resovle format.
  */
-static json_object* dumpConnectorInfo(drmModeConnector* connector)
+static json_object* dumpConnectorInfo(connector_list* current)
 {
     int i = 0;
     char id[8];
     json_object* data = json_object_new_object();
+    drmModeConnector* connector = current->data;
+    if (!current->data)
+        return data;
     json_object_object_add(data, "connection", json_object_new_int(connector->connection));
     json_object_object_add(data, "connection_type", json_object_new_int(connector->connector_type));
     json_object_object_add(data, "encoder_id", json_object_new_int(connector->encoder_id));
@@ -103,6 +107,7 @@ static json_object* dumpConnectorInfo(drmModeConnector* connector)
 
     json_object_object_add(data, "count_props", json_object_new_int(connector->count_props));
     json_object* props = json_object_new_object();
+    update_connector_props(current);
     for (i = 0; i < connector->count_props; i++) {
         snprintf(id, 8, "%d", i);
         json_object_object_add(props, id, json_object_new_int(connector->props[i]));
@@ -165,7 +170,6 @@ static json_object* dumpConnectorInfo(drmModeConnector* connector)
 
 void update_connector_props(connector_list* connector) {
     int j,i;
-    memcpy(connector->props, connector_props, sizeof(connector->props));
     drmModeObjectPropertiesPtr  props = drmModeObjectGetProperties(g_drm_fd,
             connector->data->connector_id, DRM_MODE_OBJECT_CONNECTOR);
     if (!props) {
@@ -256,7 +260,7 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
         for_each_list(current, &global_connector_list) {
             if (current->data) {
                 snprintf(buf,sizeof(buf), "%d", current->data->connector_id);
-                connector = dumpConnectorInfo(current->data);
+                connector = dumpConnectorInfo(current);
                 json_object_object_add(*data_out, buf, connector);
             }
         }
@@ -404,6 +408,17 @@ void stop_help_worker() {
     pthread_mutex_destroy(&mutex);
 }
 
+void dump_connector_status(const char* fname) {
+#if DEBUG
+    connector_list* current;
+    fprintf(stderr, "Dump connector info at [%s]:", fname);
+    for_each_list(current, &global_connector_list) {
+        fprintf(stderr, "==>[connect:%d p=%p type=%d] ", current->data->connector_id, current->data, current->data->connector_type);
+    };
+    fprintf(stderr, "\n");
+#endif
+}
+
 void help_append_connector(drmModeConnector* connector) {
     BEGING_EVENT;
     connector_list* current;
@@ -416,17 +431,17 @@ void help_append_connector(drmModeConnector* connector) {
         }
     };
     if (exist == 0) {
-        if (current->data == NULL) {
-            current->data = connector;
-        } else {
-            current->next = malloc(sizeof(connector_list));
-            current->next->prev = current;
-            current = current->next;
-            current->next = NULL;
-            current->data = connector;
-        }
-        update_connector_props(current);
+        //we already hold a empty at tail, and keep a empty at tail.
+        assert(!current->data);
+        current->data = connector;
+        current->next = malloc(sizeof(connector_list));
+        current->next->prev = current;
+        current->next->next = NULL;
+        current->next->data = NULL;;
+        dump_connector_status(__func__);
+        memcpy(current->props, connector_props, sizeof(current->props));
     }
+    update_connector_props(current);
     END_EVENT;
 }
 
@@ -439,8 +454,10 @@ void help_update_connector(drmModeConnector* old_connector, drmModeConnector* ne
         for_each_list(current, &global_connector_list) {
             if (current->data == old_connector) {
                 current->data = new_connector;
+                memcpy(current->props, connector_props, sizeof(current->props));
                 update_connector_props(current);
                 updated = 1;
+                dump_connector_status(__func__);
                 break;
             }
         }
@@ -491,8 +508,9 @@ void help_delete_connector(drmModeConnector* connector) {
     connector_list* current;
     for_each_list(current, &global_connector_list) {
         if (current->data != connector) {
-            break;
+            continue;
         }
+        dump_connector_status(__func__);
         if (current == &global_connector_list) {
             current->data = NULL;
             break;

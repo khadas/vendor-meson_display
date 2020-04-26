@@ -27,6 +27,17 @@
 #define for_each_list(pos, list_p)  for (pos = list_p; pos->next != NULL; pos = pos->next)
 
 /**
+ *
+ */
+static const char *const aspect_ratio_as_string[] = {
+    "",
+    " 4:3",
+    " 16:9",
+    " 64:27",
+    " 256:135",
+};
+
+/**
  * DRM properties are allocated dynamically, and maintained as DRM objects
  * within the normal object ID space; they thus do not have a stable ID
  * to refer to.
@@ -222,6 +233,72 @@ bool is_hdmi_connector(connector_list* current) {
     return false;
 }
 
+
+bool parse_modestring(const char* modestring, drm_helper_mode* mode) {
+    int32_t width = 0;
+    int32_t height = 0;
+    char* height_str = NULL;
+    uint32_t refresh = 0;
+    uint32_t flags = 0;
+    uint32_t aspect_width = 0;
+    uint32_t aspect_height = 0;
+    char* others = NULL;
+    const char* aspect_ratio = aspect_ratio_as_string[0];
+    int n, k;
+
+    n = sscanf(modestring , "%dx%m[^@]@%d %u:%u", &width, &height_str, &refresh, &aspect_width, &aspect_height);
+    if (n == 5) {
+        if (aspect_width == 4 && aspect_height == 3)
+            aspect_ratio = aspect_ratio_as_string[1];
+        else if (aspect_width == 16 && aspect_height == 9)
+            aspect_ratio = aspect_ratio_as_string[2];
+        else if (aspect_width == 64 && aspect_height == 27)
+            aspect_ratio = aspect_ratio_as_string[3];
+        else if (aspect_width == 256 && aspect_height == 135)
+            aspect_ratio = aspect_ratio_as_string[4];
+        else
+            fprintf(stderr, "Invalid modestring \"%s\"\n", modestring);
+    }
+    if (height_str == NULL || (n != 2 && n != 3 && n != 5)) {
+        if (height_str != NULL) {
+            free(height_str);
+        }
+        return false;
+    }
+    n = sscanf(height_str, "%d%ms", &height, &others);
+    if (n == 0) {
+        free(height_str);
+        return false;
+    }
+    if (n == 2) {
+        n = strlen(others);
+        for (k = 0; k < n; k++) {
+            switch (others[k]) {
+                case 'i':
+                    flags |= DRM_MODE_FLAG_INTERLACE;
+                    break;
+                case 'd':
+                    flags |= DRM_MODE_FLAG_DBLSCAN;
+                    break;
+                default:
+                    break;
+            }
+        }
+        free(others);
+    }
+    mode->width = width;
+    mode->height = height;
+    mode->flags = flags;
+    mode->refresh = refresh;
+    mode->aspect_ratio = aspect_ratio;
+    DEBUG_INFO("set mode to: %dx%d%c %dhz %s", mode->width, mode->height,
+            (mode->flags & DRM_MODE_FLAG_INTERLACE) ? 'i': (mode->flags & DRM_MODE_FLAG_DBLSCAN) ? 'd' : ' ',
+            mode->refresh, mode->aspect_ratio);
+    free(height_str);
+    return true;
+}
+
+
 /*
    json formate:
    {
@@ -246,14 +323,14 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
     json_object_object_get_ex(data_in, "value", &opt);
     DEBUG_INFO("Handle CMD:%s", cmd);
     if (0 == strcmp("set mode", cmd)) {
+        //Support mode string like: "%dx%m[^@]@%d %u:%u": "1920x1080i@60 16:9"
         if (opt == NULL) {
             ret = -1;
         } else {
             const char* value = json_object_get_string(opt);
             DEBUG_INFO("CMD set mode :%s", value);
             drm_helper_mode m;
-            if (3 != sscanf(value, "%dx%d@%d", &m.width, &m.height, &m.refresh/*, &aspect_width, &aspect_height*/)) {
-                DEBUG_INFO("The Value format error");
+            if (false == parse_modestring(value, &m)) {
                 ret = -1;
             } else {
                 pthread_mutex_lock(&mutex);

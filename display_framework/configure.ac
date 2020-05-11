@@ -2,7 +2,11 @@ AC_INIT([meson_display_framework], [0.1], [lingjie.li@amlogic.com])
 AM_INIT_AUTOMAKE([-Wall foreign])
 AC_PROG_CC
 AC_PROG_CXX
+AC_USE_SYSTEM_EXTENSIONS
+AC_SYS_LARGEFILE
 AC_CONFIG_HEADERS([config.h])
+CFLAGS="$CFLAGS -include config.h"
+AC_SUBST(WARN_CFLAGS)
 AC_CONFIG_FILES([
   Makefile
   src/ipc/Makefile

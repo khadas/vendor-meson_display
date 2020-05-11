@@ -1,8 +1,5 @@
-#ifndef _FILE_OFFSET_BITS
-#define _FILE_OFFSET_BITS 64
-#endif
-
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -19,6 +16,8 @@
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include <signal.h>
+
+#define FORMAT  DRM_FORMAT_ARGB8888 //bpp 32
 
 struct crtc {
     drmModeCrtc *crtc;
@@ -297,8 +296,8 @@ struct bo
 static drmModeModeInfo * connector_find_mode(struct device *dev, uint32_t con_id,
                                              const char *mode_str, const unsigned int vrefresh)
 {
-    drmModeConnector *connector;
-    drmModeModeInfo *mode;
+    drmModeConnector *connector = NULL;;
+    drmModeModeInfo *mode = NULL;
     bool use_preferred = false;
     int i;
 
@@ -334,21 +333,19 @@ static drmModeModeInfo * connector_find_mode(struct device *dev, uint32_t con_id
     return NULL;
 }
 
+
 pthread_mutex_t main_mutex;
 pthread_cond_t main_cond;
 static bool user_stop = false;
 
 void signal_handle(int signal) {
+    (void) signal;
     fprintf(stderr, "User interrupt handling\n");
     pthread_mutex_lock(&main_mutex);
     user_stop = true;
     pthread_mutex_unlock(&main_mutex);
     pthread_cond_signal(&main_cond);
 }
-
-#define FORMAT  DRM_FORMAT_ARGB8888 //bpp 32
-#define WIDTH 1920
-#define HEIGHT 1080
 
 void wait_connection() {
     //Hark for hotplugin
@@ -362,7 +359,7 @@ int main(int argc, char** argv) {
     int ret = 0;
     const char* device_name = "meson";
     const char* display_mode = "";
-    int display_refresh = 60;
+    int display_refresh = 0;
     int connector_id = -1;
     int crtc_id = -1;
     struct device dev;
@@ -394,16 +391,20 @@ int main(int argc, char** argv) {
                 crtc_id = atoi(optarg);
                 break;
             default:
-                printf("Unknow Usage:-%c\nUsage %s: -d device_path -c connector_id -C crtc_id -m mode_str -p refresh_rate\n\tegl: %s -d %s -m %s -p %d\n",c, argv[0], argv[0], device_name, display_mode, display_refresh);
+                printf("Unknow Usage:-%c\nUsage %s: -d device_path -c connector_id -C crtc_id -m mode_str -p refresh_rate\n\tegl: %s -d %s -m 1920x1080 -p 60\n",c, argv[0], argv[0], device_name);
                 exit(-1);
         }
     }
-    fprintf(stderr, "Use device:%s with connector mode:%s@%d\n", device_name, strlen(display_mode)? display_mode : "preferred", display_refresh);
+    fprintf(stderr, "Use device:%s with connector mode:%s\n", device_name, strlen(display_mode)? display_mode : "preferred");
 
     //The busid can be NULL.
     //If no /dev/dri, may be caused by the udev not enabed.
     //Need disable udev on libdrm build configration.
     dev.fd = drmOpen(device_name, NULL);
+    if (dev.fd < 0) {
+        fprintf(stderr, "failed to open device %s\n", strerror(errno));
+        exit(-1);
+    }
     bool need_wait_connection = false;
     do {
         need_wait_connection = false;
@@ -467,19 +468,21 @@ int main(int argc, char** argv) {
     }
 
     struct bo *bo = calloc(1, sizeof(*bo));
-    struct drm_mode_create_dumb arg_create;
     if (bo == NULL) {
         fprintf(stderr, "failed to allocate buffer object\n");
         goto out_error1;
     }
+    struct drm_mode_create_dumb arg_create;
+    memset(&arg_create, 0, sizeof(arg_create));
     arg_create.bpp = 32;
-    arg_create.width = WIDTH;
-    arg_create.height = HEIGHT;
+    arg_create.width = mode->hdisplay;
+    arg_create.height = mode->vdisplay;
     ret = drmIoctl(dev.fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg_create);
     if (ret) {
         fprintf(stderr, "failed to create dumb buffer: %s\n", strerror(errno));
         goto out_error1;
     }
+    fprintf(stderr, "create buffer size:%" PRIu64 " pitch:%" PRIu32 " (%" PRIu32 "x%" PRIu32 ")\n",arg_create.size, arg_create.pitch, arg_create.width, arg_create.height);
 
     bo->fd = dev.fd;
     bo->handle = arg_create.handle;
@@ -487,7 +490,7 @@ int main(int argc, char** argv) {
     bo->pitch = arg_create.pitch;
 
     struct drm_mode_map_dumb arg_map;
-    void *map;
+    void *map = MAP_FAILED;
     memset(&arg_map, 0, sizeof(arg_map));
     arg_map.handle = bo->handle;
     ret = drmIoctl(bo->fd, DRM_IOCTL_MODE_MAP_DUMB, &arg_map);
@@ -497,25 +500,33 @@ int main(int argc, char** argv) {
     }
 
     errno = 0;
-    map = mmap(NULL, bo->size, PROT_WRITE, MAP_SHARED, bo->fd, arg_map.offset);
-    if (map == MAP_FAILED) {
-        fprintf(stderr, "Error failed to map buffer: %s\nmmap(0, 0x%x, 0x%x, %d, %d)\n", strerror(errno), bo->size, PROT_READ|PROT_WRITE, MAP_SHARED, bo->fd, arg_map.offset);
-        // goto out_error2;
+    int page_size = getpagesize();
+    if (bo->size & (page_size - 1) || arg_map.offset & (page_size - 1)) {
+        fprintf(stderr, "Error drm map dump get offset not 4k uniform offset=%" PRIu64 , arg_map.offset);
     } else {
+        map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED, bo->fd, arg_map.offset);
+    }
+    if (map != MAP_FAILED) {
+        if ((uintptr_t)map & (page_size - 1)) {
+            fprintf(stderr, "Buffer maped address or size incorrect, may be not 4k uniform\n, addr:%p ,size:%zu\n",map, bo->size);
+        }
         //fill with 0;
-        memset(map, 0x0, bo->pitch * HEIGHT);
+        memset(map, 0x0, bo->size);
         munmap(map, bo->size);
+
+    } else {
+        fprintf(stderr, "Error failed to map buffer: %s\nmmap(0, %zu %#x, %#x, %d, %" PRIu64 "), may be relate with:_FILE_OFFSET_BITS!\n", strerror(errno), bo->size, PROT_READ|PROT_WRITE, MAP_SHARED, bo->fd, arg_map.offset);
     }
     unsigned int fb_id;
     unsigned handles[4] = {0}, offset[4] = {0}, pitchs[4] = {0};
 
     handles[0] = bo->handle;
     pitchs[0] = bo->pitch;
-    ret = drmModeAddFB2(dev.fd, WIDTH, HEIGHT,
+    ret = drmModeAddFB2(dev.fd, mode->hdisplay, mode->vdisplay,
             FORMAT, handles, pitchs, offset, &fb_id, 0);
     if (ret) {
         fprintf(stderr, "failed to add fb (%ux%u): %s\n",
-                WIDTH, HEIGHT, strerror(errno));
+                mode->hdisplay, mode->vdisplay, strerror(errno));
         ret = -1;
         goto out_error2;
     }
@@ -525,8 +536,6 @@ int main(int argc, char** argv) {
     ret = drmModeSetCrtc(dev.fd, crtc_id, fb_id,
             0, 0, connectors , 1,
             mode);
-    /* XXX: Actually check if this is needed */
-    drmModeDirtyFB(dev.fd, fb_id, NULL, 0);
     if (ret) {
         fprintf(stderr, "failed to set mode: %s\n", strerror(errno));
         goto out_error2;
@@ -574,7 +583,6 @@ int main(int argc, char** argv) {
     ret = 0;
 
 out_error2:
-
     memset(&arg_destroy, 0, sizeof(arg_destroy));
     arg_destroy.handle = bo->handle;
 

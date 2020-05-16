@@ -5,7 +5,6 @@ AC_PROG_CXX
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 AC_CONFIG_HEADERS([config.h])
-CFLAGS="$CFLAGS -include config.h"
 AC_SUBST(WARN_CFLAGS)
 AC_CONFIG_FILES([
   Makefile
@@ -40,6 +39,7 @@ AM_CONDITIONAL(DEBUG, test "x$debug" = "xtrue")
 AM_CONDITIONAL(ENABLE_WESTON_EXTENTION, test "x$have_json_c" = "xyes" -a "x$have_libdrm" = "xyes")
 
 AM_CONDITIONAL(ENABLE_DRM_FUNCTION, test "x$have_libdrm" = "xyes")
+CFLAGS="$CFLAGS -include config.h"
 
 AC_OUTPUT
 

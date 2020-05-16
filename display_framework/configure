@@ -5074,7 +5074,6 @@ fi
 
 ac_config_headers="$ac_config_headers config.h"
 
-CFLAGS="$CFLAGS -include config.h"
 
 ac_config_files="$ac_config_files Makefile src/ipc/Makefile src/extension/weston-6.0/Makefile src/extension/drm/Makefile"
 
@@ -16666,6 +16665,7 @@ else
   ENABLE_DRM_FUNCTION_FALSE=
 fi
 
+CFLAGS="$CFLAGS -include config.h"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

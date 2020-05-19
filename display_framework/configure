@@ -639,6 +639,16 @@ ENABLE_DRM_FUNCTION_FALSE
 ENABLE_DRM_FUNCTION_TRUE
 ENABLE_WESTON_EXTENTION_FALSE
 ENABLE_WESTON_EXTENTION_TRUE
+HAVE_EGL_FALSE
+HAVE_EGL_TRUE
+EGL_LIBS
+EGL_CFLAGS
+WESTON_SAMPLES_FALSE
+WESTON_SAMPLES_TRUE
+wayland_scanner
+WAYLAND_PROTOCOLS_DATADIR
+WESTON_SAMPLES_LIBS
+WESTON_SAMPLES_CFLAGS
 DEBUG_FALSE
 DEBUG_TRUE
 LIBDRM_LIBS
@@ -665,7 +675,6 @@ ac_ct_DUMPBIN
 DUMPBIN
 LD
 FGREP
-SED
 host_os
 host_vendor
 host_cpu
@@ -687,6 +696,7 @@ CXXDEPMODE
 ac_ct_CXX
 CXXFLAGS
 CXX
+SED
 am__fastdepCC_FALSE
 am__fastdepCC_TRUE
 CCDEPMODE
@@ -784,6 +794,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_debug
+with_weston_samples
 '
       ac_precious_vars='build_alias
 host_alias
@@ -805,7 +816,11 @@ PKG_CONFIG_LIBDIR
 JSONC_CFLAGS
 JSONC_LIBS
 LIBDRM_CFLAGS
-LIBDRM_LIBS'
+LIBDRM_LIBS
+WESTON_SAMPLES_CFLAGS
+WESTON_SAMPLES_LIBS
+EGL_CFLAGS
+EGL_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1450,6 +1465,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
+  --with-weston-samples    build weston samples
 
 Some influential environment variables:
   CC          C compiler command
@@ -1476,6 +1492,12 @@ Some influential environment variables:
   LIBDRM_CFLAGS
               C compiler flags for LIBDRM, overriding pkg-config
   LIBDRM_LIBS linker flags for LIBDRM, overriding pkg-config
+  WESTON_SAMPLES_CFLAGS
+              C compiler flags for WESTON_SAMPLES, overriding pkg-config
+  WESTON_SAMPLES_LIBS
+              linker flags for WESTON_SAMPLES, overriding pkg-config
+  EGL_CFLAGS  C compiler flags for EGL, overriding pkg-config
+  EGL_LIBS    linker flags for EGL, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -4028,6 +4050,75 @@ else
 fi
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
+$as_echo_n "checking for a sed that does not truncate output... " >&6; }
+if ${ac_cv_path_SED+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+            ac_script=s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/
+     for ac_i in 1 2 3 4 5 6 7; do
+       ac_script="$ac_script$as_nl$ac_script"
+     done
+     echo "$ac_script" 2>/dev/null | sed 99q >conftest.sed
+     { ac_script=; unset ac_script;}
+     if test -z "$SED"; then
+  ac_path_SED_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in sed gsed; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_SED="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_SED" || continue
+# Check for GNU ac_path_SED and select it if it is found.
+  # Check for GNU $ac_path_SED
+case `"$ac_path_SED" --version 2>&1` in
+*GNU*)
+  ac_cv_path_SED="$ac_path_SED" ac_path_SED_found=:;;
+*)
+  ac_count=0
+  $as_echo_n 0123456789 >"conftest.in"
+  while :
+  do
+    cat "conftest.in" "conftest.in" >"conftest.tmp"
+    mv "conftest.tmp" "conftest.in"
+    cp "conftest.in" "conftest.nl"
+    $as_echo '' >> "conftest.nl"
+    "$ac_path_SED" -f conftest.sed < "conftest.nl" >"conftest.out" 2>/dev/null || break
+    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
+    as_fn_arith $ac_count + 1 && ac_count=$as_val
+    if test $ac_count -gt ${ac_path_SED_max-0}; then
+      # Best one so far, save it but keep looking for a better one
+      ac_cv_path_SED="$ac_path_SED"
+      ac_path_SED_max=$ac_count
+    fi
+    # 10*(2^10) chars as input seems more than enough
+    test $ac_count -gt 10 && break
+  done
+  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
+esac
+
+      $ac_path_SED_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_SED"; then
+    as_fn_error $? "no acceptable sed could be found in \$PATH" "$LINENO" 5
+  fi
+else
+  ac_cv_path_SED=$SED
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_SED" >&5
+$as_echo "$ac_cv_path_SED" >&6; }
+ SED="$ac_cv_path_SED"
+  rm -f conftest.sed
+
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -5075,7 +5166,7 @@ fi
 ac_config_headers="$ac_config_headers config.h"
 
 
-ac_config_files="$ac_config_files Makefile src/ipc/Makefile src/extension/weston-6.0/Makefile src/extension/drm/Makefile"
+ac_config_files="$ac_config_files Makefile src/ipc/Makefile src/extension/weston-6.0/Makefile src/extension/drm/Makefile src/samples/weston/Makefile"
 
 if test -n "$ac_tool_prefix"; then
   for ac_prog in ar lib "link -lib"
@@ -16236,49 +16327,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for json_tokener_parse in -ljson-c" >&5
-$as_echo_n "checking for json_tokener_parse in -ljson-c... " >&6; }
-if ${ac_cv_lib_json_c_json_tokener_parse+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ljson-c  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char json_tokener_parse ();
-int
-main ()
-{
-return json_tokener_parse ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_json_c_json_tokener_parse=yes
-else
-  ac_cv_lib_json_c_json_tokener_parse=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_json_c_json_tokener_parse" >&5
-$as_echo "$ac_cv_lib_json_c_json_tokener_parse" >&6; }
-if test "x$ac_cv_lib_json_c_json_tokener_parse" = xyes; then :
-  have_json_c=yes
-else
-  have_json_c=no
-fi
-
-if test "x$have_json_c" = "xyes";then
 
 
 
@@ -16399,6 +16447,49 @@ $as_echo "no" >&6; }
 		PKG_CONFIG=""
 	fi
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for json_tokener_parse in -ljson-c" >&5
+$as_echo_n "checking for json_tokener_parse in -ljson-c... " >&6; }
+if ${ac_cv_lib_json_c_json_tokener_parse+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ljson-c  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char json_tokener_parse ();
+int
+main ()
+{
+return json_tokener_parse ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_json_c_json_tokener_parse=yes
+else
+  ac_cv_lib_json_c_json_tokener_parse=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_json_c_json_tokener_parse" >&5
+$as_echo "$ac_cv_lib_json_c_json_tokener_parse" >&6; }
+if test "x$ac_cv_lib_json_c_json_tokener_parse" = xyes; then :
+  have_json_c=yes
+else
+  have_json_c=no
+fi
+
+if test "x$have_json_c" = "xyes";then
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for JSONC" >&5
@@ -16648,6 +16739,234 @@ else
 fi
 
 
+
+
+# Check whether --with-weston-samples was given.
+if test "${with_weston_samples+set}" = set; then :
+  withval=$with_weston_samples; with_weston_samples=yes
+else
+  with_weston_samples=no
+fi
+
+if test "x$with_weston_samples" != "xno"; then :
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for WESTON_SAMPLES" >&5
+$as_echo_n "checking for WESTON_SAMPLES... " >&6; }
+
+if test -n "$WESTON_SAMPLES_CFLAGS"; then
+    pkg_cv_WESTON_SAMPLES_CFLAGS="$WESTON_SAMPLES_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"wayland-client libdrm wayland-protocols wayland-scanner\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "wayland-client libdrm wayland-protocols wayland-scanner") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_WESTON_SAMPLES_CFLAGS=`$PKG_CONFIG --cflags "wayland-client libdrm wayland-protocols wayland-scanner" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$WESTON_SAMPLES_LIBS"; then
+    pkg_cv_WESTON_SAMPLES_LIBS="$WESTON_SAMPLES_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"wayland-client libdrm wayland-protocols wayland-scanner\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "wayland-client libdrm wayland-protocols wayland-scanner") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_WESTON_SAMPLES_LIBS=`$PKG_CONFIG --libs "wayland-client libdrm wayland-protocols wayland-scanner" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        WESTON_SAMPLES_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "wayland-client libdrm wayland-protocols wayland-scanner" 2>&1`
+        else
+	        WESTON_SAMPLES_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "wayland-client libdrm wayland-protocols wayland-scanner" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$WESTON_SAMPLES_PKG_ERRORS" >&5
+
+	with_weston_samples=no && { $as_echo "$as_me:${as_lineno-$LINENO}: Weston samples wouldn't be build, no wayalnd-client or libdrm" >&5
+$as_echo "$as_me: Weston samples wouldn't be build, no wayalnd-client or libdrm" >&6;}
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	with_weston_samples=no && { $as_echo "$as_me:${as_lineno-$LINENO}: Weston samples wouldn't be build, no wayalnd-client or libdrm" >&5
+$as_echo "$as_me: Weston samples wouldn't be build, no wayalnd-client or libdrm" >&6;}
+else
+	WESTON_SAMPLES_CFLAGS=$pkg_cv_WESTON_SAMPLES_CFLAGS
+	WESTON_SAMPLES_LIBS=$pkg_cv_WESTON_SAMPLES_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	ac_wayland_protocols_pkgdatadir=`$PKG_CONFIG --variable=pkgdatadir wayland-protocols`
+fi
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Weston samples wouldn't be build" >&5
+$as_echo "$as_me: Weston samples wouldn't be build" >&6;}
+fi
+
+if test "x$with_weston_samples" != "xno"; then :
+
+	 WAYLAND_PROTOCOLS_DATADIR=$ac_wayland_protocols_pkgdatadir
+
+	 # Extract the first word of "wayland-scanner", so it can be a program name with args.
+set dummy wayland-scanner; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_wayland_scanner+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $wayland_scanner in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_wayland_scanner="$wayland_scanner" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_wayland_scanner="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+wayland_scanner=$ac_cv_path_wayland_scanner
+if test -n "$wayland_scanner"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $wayland_scanner" >&5
+$as_echo "$wayland_scanner" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+	 if test x$wayland_scanner = x; then
+		 wayland_scanner=`$PKG_CONFIG --variable=wayland_scanner wayland-scanner`
+	 fi
+
+fi
+
+ if test "x$with_weston_samples" != "xno"; then
+  WESTON_SAMPLES_TRUE=
+  WESTON_SAMPLES_FALSE='#'
+else
+  WESTON_SAMPLES_TRUE='#'
+  WESTON_SAMPLES_FALSE=
+fi
+
+
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for EGL" >&5
+$as_echo_n "checking for EGL... " >&6; }
+
+if test -n "$EGL_CFLAGS"; then
+    pkg_cv_EGL_CFLAGS="$EGL_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"egl glesv2\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "egl glesv2") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_EGL_CFLAGS=`$PKG_CONFIG --cflags "egl glesv2" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$EGL_LIBS"; then
+    pkg_cv_EGL_LIBS="$EGL_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"egl glesv2\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "egl glesv2") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_EGL_LIBS=`$PKG_CONFIG --libs "egl glesv2" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        EGL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "egl glesv2" 2>&1`
+        else
+	        EGL_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "egl glesv2" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$EGL_PKG_ERRORS" >&5
+
+	have_egl=no
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	have_egl=no
+else
+	EGL_CFLAGS=$pkg_cv_EGL_CFLAGS
+	EGL_LIBS=$pkg_cv_EGL_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	have_egl=yes
+fi
+
+ if test "x$have_egl" != "xno"; then
+  HAVE_EGL_TRUE=
+  HAVE_EGL_FALSE='#'
+else
+  HAVE_EGL_TRUE='#'
+  HAVE_EGL_FALSE=
+fi
+
+
  if test "x$have_json_c" = "xyes" -a "x$have_libdrm" = "xyes"; then
   ENABLE_WESTON_EXTENTION_TRUE=
   ENABLE_WESTON_EXTENTION_FALSE='#'
@@ -16806,6 +17125,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${DEBUG_TRUE}" && test -z "${DEBUG_FALSE}"; then
   as_fn_error $? "conditional \"DEBUG\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${WESTON_SAMPLES_TRUE}" && test -z "${WESTON_SAMPLES_FALSE}"; then
+  as_fn_error $? "conditional \"WESTON_SAMPLES\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_EGL_TRUE}" && test -z "${HAVE_EGL_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_EGL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ENABLE_WESTON_EXTENTION_TRUE}" && test -z "${ENABLE_WESTON_EXTENTION_FALSE}"; then
@@ -17795,6 +18122,7 @@ do
     "src/ipc/Makefile") CONFIG_FILES="$CONFIG_FILES src/ipc/Makefile" ;;
     "src/extension/weston-6.0/Makefile") CONFIG_FILES="$CONFIG_FILES src/extension/weston-6.0/Makefile" ;;
     "src/extension/drm/Makefile") CONFIG_FILES="$CONFIG_FILES src/extension/drm/Makefile" ;;
+    "src/samples/weston/Makefile") CONFIG_FILES="$CONFIG_FILES src/samples/weston/Makefile" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

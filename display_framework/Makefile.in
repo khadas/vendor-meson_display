@@ -91,6 +91,7 @@ host_triplet = @host@
 @ENABLE_DRM_FUNCTION_TRUE@@ENABLE_WESTON_EXTENTION_TRUE@am__append_2 = src/ipc \
 @ENABLE_DRM_FUNCTION_TRUE@@ENABLE_WESTON_EXTENTION_TRUE@		   src/extension/weston-6.0
 
+@ENABLE_DRM_FUNCTION_TRUE@@WESTON_SAMPLES_TRUE@am__append_3 = src/samples/weston
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
@@ -163,7 +164,8 @@ am__define_uniq_tagged_files = \
 ETAGS = etags
 CTAGS = ctags
 CSCOPE = cscope
-DIST_SUBDIRS = src/extension/drm src/ipc src/extension/weston-6.0
+DIST_SUBDIRS = src/extension/drm src/ipc src/extension/weston-6.0 \
+	src/samples/weston
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in COPYING \
 	ar-lib compile config.guess config.sub depcomp install-sh \
 	ltmain.sh missing
@@ -235,6 +237,8 @@ DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGL_CFLAGS = @EGL_CFLAGS@
+EGL_LIBS = @EGL_LIBS@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
@@ -284,6 +288,9 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
 WARN_CFLAGS = @WARN_CFLAGS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WESTON_SAMPLES_CFLAGS = @WESTON_SAMPLES_CFLAGS@
+WESTON_SAMPLES_LIBS = @WESTON_SAMPLES_LIBS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -337,8 +344,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+wayland_scanner = @wayland_scanner@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = $(am__append_1) $(am__append_2)
+SUBDIRS = $(am__append_1) $(am__append_2) $(am__append_3)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

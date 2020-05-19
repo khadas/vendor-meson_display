@@ -15,7 +15,6 @@
 @SET_MAKE@
 
 
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -90,10 +89,12 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = ipc_test$(EXEEXT)
+bin_PROGRAMS = weston-dmabuf-ion$(EXEEXT) weston-dmabuf-drm$(EXEEXT) \
+	weston-dmabuf-v4l$(EXEEXT) $(am__EXEEXT_1)
 @DEBUG_TRUE@am__append_1 = -DDEBUG=1
 @DEBUG_TRUE@am__append_2 = -DDEBUG=1
-subdir = src/ipc
+@HAVE_EGL_TRUE@am__append_3 = weston-dmabuf-egl-yuv-on-osd
+subdir = src/samples/weston
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -101,32 +102,57 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(libjsonipc_la_HEADERS) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
-am__DEPENDENCIES_1 =
-libjsonipc_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_libjsonipc_la_OBJECTS = ipc.lo
-libjsonipc_la_OBJECTS = $(am_libjsonipc_la_OBJECTS)
+libweston_client_la_LIBADD =
+am__dirstamp = $(am__leading_dot)dirstamp
+nodist_libweston_client_la_OBJECTS =  \
+	protocol/linux-dmabuf-unstable-v1-protocol.lo \
+	protocol/fullscreen-shell-unstable-v1-protocol.lo \
+	protocol/xdg-shell-protocol.lo \
+	protocol/xdg-shell-unstable-v6-protocol.lo \
+	protocol/linux-explicit-synchronization-unstable-v1-protocol.lo
+libweston_client_la_OBJECTS = $(nodist_libweston_client_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-libjsonipc_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(libjsonipc_la_LDFLAGS) $(LDFLAGS) -o $@
-PROGRAMS = $(noinst_PROGRAMS)
-am__dirstamp = $(am__leading_dot)dirstamp
-am_ipc_test_OBJECTS = test/ipc_test-test_main.$(OBJEXT)
-ipc_test_OBJECTS = $(am_ipc_test_OBJECTS)
-ipc_test_DEPENDENCIES = libjsonipc.la
-ipc_test_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ipc_test_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+@HAVE_EGL_TRUE@am__EXEEXT_1 = weston-dmabuf-egl-yuv-on-osd$(EXEEXT)
+am__installdirs = "$(DESTDIR)$(bindir)"
+PROGRAMS = $(bin_PROGRAMS)
+am_weston_dmabuf_drm_OBJECTS =  \
+	weston_dmabuf_drm-simple-dmabuf-drm.$(OBJEXT)
+weston_dmabuf_drm_OBJECTS = $(am_weston_dmabuf_drm_OBJECTS)
+am__DEPENDENCIES_1 =
+weston_dmabuf_drm_DEPENDENCIES = libweston-client.la \
+	$(am__DEPENDENCIES_1)
+weston_dmabuf_drm_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(weston_dmabuf_drm_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
+am__weston_dmabuf_egl_yuv_on_osd_SOURCES_DIST =  \
+	simple-dmabuf-egl-yuv-on-osd.c
+@HAVE_EGL_TRUE@am_weston_dmabuf_egl_yuv_on_osd_OBJECTS = weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.$(OBJEXT)
+weston_dmabuf_egl_yuv_on_osd_OBJECTS =  \
+	$(am_weston_dmabuf_egl_yuv_on_osd_OBJECTS)
+am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
+@HAVE_EGL_TRUE@weston_dmabuf_egl_yuv_on_osd_DEPENDENCIES =  \
+@HAVE_EGL_TRUE@	$(am__DEPENDENCIES_2) libweston-client.la \
+@HAVE_EGL_TRUE@	$(am__DEPENDENCIES_1)
+weston_dmabuf_egl_yuv_on_osd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(weston_dmabuf_egl_yuv_on_osd_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am_weston_dmabuf_ion_OBJECTS = simple-dmabuf-ion.$(OBJEXT)
+weston_dmabuf_ion_OBJECTS = $(am_weston_dmabuf_ion_OBJECTS)
+weston_dmabuf_ion_DEPENDENCIES = libweston-client.la
+am_weston_dmabuf_v4l_OBJECTS = simple-dmabuf-v4l.$(OBJEXT)
+weston_dmabuf_v4l_OBJECTS = $(am_weston_dmabuf_v4l_OBJECTS)
+weston_dmabuf_v4l_DEPENDENCIES = libweston-client.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -161,42 +187,18 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libjsonipc_la_SOURCES) $(ipc_test_SOURCES)
-DIST_SOURCES = $(libjsonipc_la_SOURCES) $(ipc_test_SOURCES)
+SOURCES = $(nodist_libweston_client_la_SOURCES) \
+	$(weston_dmabuf_drm_SOURCES) \
+	$(weston_dmabuf_egl_yuv_on_osd_SOURCES) \
+	$(weston_dmabuf_ion_SOURCES) $(weston_dmabuf_v4l_SOURCES)
+DIST_SOURCES = $(weston_dmabuf_drm_SOURCES) \
+	$(am__weston_dmabuf_egl_yuv_on_osd_SOURCES_DIST) \
+	$(weston_dmabuf_ion_SOURCES) $(weston_dmabuf_v4l_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__uninstall_files_from_dir = { \
-  test -z "$$files" \
-    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
-    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
-         $(am__cd) "$$dir" && rm -f $$files; }; \
-  }
-am__installdirs = "$(DESTDIR)$(libjsonipc_ladir)"
-HEADERS = $(libjsonipc_la_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -353,18 +355,44 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 wayland_scanner = @wayland_scanner@
 AUTOMAKE_OPTIONS = subdir-objects
-noinst_LTLIBRARIES = libjsonipc.la
-AM_CFLAGS = $(JSONC_CFLAGS) $(am__append_1)
-AM_CPPFLAGS = $(JSONC_CFLAGS) $(am__append_2)
-libjsonipc_la_LIBADD = $(JSONC_LIBS)
-libjsonipc_la_LDFLAGS = -pthread
-libjsonipc_la_SOURCES = ipc.c ipc.h
-libjsonipc_ladir = $(includedir)/ipc
-libjsonipc_la_HEADERS = ipc.h
-ipc_test_CFLAGS = -DDEBUG
-ipc_test_SOURCES = test/test_main.c
-ipc_test_LDADD = libjsonipc.la
-all: all-am
+noinst_LTLIBRARIES = libweston-client.la
+BUILT_SOURCES = \
+				protocol/linux-dmabuf-unstable-v1-client-protocol.h \
+				protocol/linux-dmabuf-unstable-v1-protocol.c \
+				protocol/xdg-shell-client-protocol.h \
+				protocol/fullscreen-shell-unstable-v1-client-protocol.h \
+				protocol/fullscreen-shell-unstable-v1-protocol.c \
+				protocol/xdg-shell-protocol.c \
+				protocol/xdg-shell-unstable-v6-client-protocol.h \
+				protocol/xdg-shell-unstable-v6-protocol.c \
+				protocol/linux-explicit-synchronization-unstable-v1-client-protocol.h \
+				protocol/linux-explicit-synchronization-unstable-v1-protocol.c
+
+AM_CFLAGS = $(WESTON_SAMPLES_CFLAGS) -I$(srcdir)/protocol \
+	$(am__append_1)
+AM_CXXFLAGS = $(WESTON_SAMPLES_CFLAGS)-I$(srcdir)/protocol \
+	$(am__append_2)
+AM_LDFLAGS = $(WESTON_SAMPLES_LIBS)
+nodist_libweston_client_la_SOURCES = \
+									 protocol/linux-dmabuf-unstable-v1-protocol.c \
+									 protocol/xdg-shell-client-protocol.h \
+									 protocol/fullscreen-shell-unstable-v1-protocol.c \
+									 protocol/xdg-shell-protocol.c \
+									 protocol/xdg-shell-unstable-v6-protocol.c \
+									 protocol/linux-explicit-synchronization-unstable-v1-protocol.c
+
+weston_dmabuf_drm_SOURCES = simple-dmabuf-drm.c
+weston_dmabuf_drm_LDADD = libweston-client.la $(LIBDRM_LIBS)
+weston_dmabuf_drm_CFLAGS = $(AM_CFLAGS) $(LIBDRM_CFLAGS)
+@HAVE_EGL_TRUE@weston_dmabuf_egl_yuv_on_osd_SOURCES = simple-dmabuf-egl-yuv-on-osd.c
+@HAVE_EGL_TRUE@weston_dmabuf_egl_yuv_on_osd_LDADD = $(AM_LDFLAGS) libweston-client.la $(EGL_LIBS)
+@HAVE_EGL_TRUE@weston_dmabuf_egl_yuv_on_osd_CFLAGS = $(AM_CFLAGS) $(EGL_CFLAGS) $(LIBDRM_CFLAGS)
+weston_dmabuf_ion_SOURCES = simple-dmabuf-ion.c
+weston_dmabuf_ion_LDADD = libweston-client.la -lamvdec
+weston_dmabuf_v4l_SOURCES = simple-dmabuf-v4l.c
+weston_dmabuf_v4l_LDADD = libweston-client.la
+all: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -377,9 +405,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/ipc/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/samples/weston/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/ipc/Makefile
+	  $(AUTOMAKE) --foreign src/samples/weston/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -408,40 +436,108 @@ clean-noinstLTLIBRARIES:
 	  echo rm -f $${locs}; \
 	  rm -f $${locs}; \
 	}
+protocol/$(am__dirstamp):
+	@$(MKDIR_P) protocol
+	@: > protocol/$(am__dirstamp)
+protocol/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) protocol/$(DEPDIR)
+	@: > protocol/$(DEPDIR)/$(am__dirstamp)
+protocol/linux-dmabuf-unstable-v1-protocol.lo:  \
+	protocol/$(am__dirstamp) protocol/$(DEPDIR)/$(am__dirstamp)
+protocol/fullscreen-shell-unstable-v1-protocol.lo:  \
+	protocol/$(am__dirstamp) protocol/$(DEPDIR)/$(am__dirstamp)
+protocol/xdg-shell-protocol.lo: protocol/$(am__dirstamp) \
+	protocol/$(DEPDIR)/$(am__dirstamp)
+protocol/xdg-shell-unstable-v6-protocol.lo: protocol/$(am__dirstamp) \
+	protocol/$(DEPDIR)/$(am__dirstamp)
+protocol/linux-explicit-synchronization-unstable-v1-protocol.lo:  \
+	protocol/$(am__dirstamp) protocol/$(DEPDIR)/$(am__dirstamp)
 
-libjsonipc.la: $(libjsonipc_la_OBJECTS) $(libjsonipc_la_DEPENDENCIES) $(EXTRA_libjsonipc_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libjsonipc_la_LINK)  $(libjsonipc_la_OBJECTS) $(libjsonipc_la_LIBADD) $(LIBS)
+libweston-client.la: $(libweston_client_la_OBJECTS) $(libweston_client_la_DEPENDENCIES) $(EXTRA_libweston_client_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK)  $(libweston_client_la_OBJECTS) $(libweston_client_la_LIBADD) $(LIBS)
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(bindir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(bindir)" || exit 1; \
+	fi; \
+	for p in $$list; do echo "$$p $$p"; done | \
+	sed 's/$(EXEEXT)$$//' | \
+	while read p p1; do if test -f $$p \
+	 || test -f $$p1 \
+	  ; then echo "$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n;h' \
+	    -e 's|.*|.|' \
+	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
+	sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
+	    else { print "f", $$3 "/" $$4, $$1; } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	    test -z "$$files" || { \
+	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
+	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
+	    } \
+	; done
 
-clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
+	      -e 's/$$/$(EXEEXT)/' \
+	`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+
+clean-binPROGRAMS:
+	@list='$(bin_PROGRAMS)'; test -n "$$list" || exit 0; \
 	echo " rm -f" $$list; \
 	rm -f $$list || exit $$?; \
 	test -n "$(EXEEXT)" || exit 0; \
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-test/$(am__dirstamp):
-	@$(MKDIR_P) test
-	@: > test/$(am__dirstamp)
-test/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) test/$(DEPDIR)
-	@: > test/$(DEPDIR)/$(am__dirstamp)
-test/ipc_test-test_main.$(OBJEXT): test/$(am__dirstamp) \
-	test/$(DEPDIR)/$(am__dirstamp)
 
-ipc_test$(EXEEXT): $(ipc_test_OBJECTS) $(ipc_test_DEPENDENCIES) $(EXTRA_ipc_test_DEPENDENCIES) 
-	@rm -f ipc_test$(EXEEXT)
-	$(AM_V_CCLD)$(ipc_test_LINK) $(ipc_test_OBJECTS) $(ipc_test_LDADD) $(LIBS)
+weston-dmabuf-drm$(EXEEXT): $(weston_dmabuf_drm_OBJECTS) $(weston_dmabuf_drm_DEPENDENCIES) $(EXTRA_weston_dmabuf_drm_DEPENDENCIES) 
+	@rm -f weston-dmabuf-drm$(EXEEXT)
+	$(AM_V_CCLD)$(weston_dmabuf_drm_LINK) $(weston_dmabuf_drm_OBJECTS) $(weston_dmabuf_drm_LDADD) $(LIBS)
+
+weston-dmabuf-egl-yuv-on-osd$(EXEEXT): $(weston_dmabuf_egl_yuv_on_osd_OBJECTS) $(weston_dmabuf_egl_yuv_on_osd_DEPENDENCIES) $(EXTRA_weston_dmabuf_egl_yuv_on_osd_DEPENDENCIES) 
+	@rm -f weston-dmabuf-egl-yuv-on-osd$(EXEEXT)
+	$(AM_V_CCLD)$(weston_dmabuf_egl_yuv_on_osd_LINK) $(weston_dmabuf_egl_yuv_on_osd_OBJECTS) $(weston_dmabuf_egl_yuv_on_osd_LDADD) $(LIBS)
+
+weston-dmabuf-ion$(EXEEXT): $(weston_dmabuf_ion_OBJECTS) $(weston_dmabuf_ion_DEPENDENCIES) $(EXTRA_weston_dmabuf_ion_DEPENDENCIES) 
+	@rm -f weston-dmabuf-ion$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(weston_dmabuf_ion_OBJECTS) $(weston_dmabuf_ion_LDADD) $(LIBS)
+
+weston-dmabuf-v4l$(EXEEXT): $(weston_dmabuf_v4l_OBJECTS) $(weston_dmabuf_v4l_DEPENDENCIES) $(EXTRA_weston_dmabuf_v4l_DEPENDENCIES) 
+	@rm -f weston-dmabuf-v4l$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(weston_dmabuf_v4l_OBJECTS) $(weston_dmabuf_v4l_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f test/*.$(OBJEXT)
+	-rm -f protocol/*.$(OBJEXT)
+	-rm -f protocol/*.lo
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipc.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@test/$(DEPDIR)/ipc_test-test_main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/simple-dmabuf-ion.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/simple-dmabuf-v4l.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@protocol/$(DEPDIR)/fullscreen-shell-unstable-v1-protocol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@protocol/$(DEPDIR)/linux-dmabuf-unstable-v1-protocol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@protocol/$(DEPDIR)/linux-explicit-synchronization-unstable-v1-protocol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@protocol/$(DEPDIR)/xdg-shell-protocol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@protocol/$(DEPDIR)/xdg-shell-unstable-v6-protocol.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -467,46 +563,40 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-test/ipc_test-test_main.o: test/test_main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipc_test_CFLAGS) $(CFLAGS) -MT test/ipc_test-test_main.o -MD -MP -MF test/$(DEPDIR)/ipc_test-test_main.Tpo -c -o test/ipc_test-test_main.o `test -f 'test/test_main.c' || echo '$(srcdir)/'`test/test_main.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) test/$(DEPDIR)/ipc_test-test_main.Tpo test/$(DEPDIR)/ipc_test-test_main.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test/test_main.c' object='test/ipc_test-test_main.o' libtool=no @AMDEPBACKSLASH@
+weston_dmabuf_drm-simple-dmabuf-drm.o: simple-dmabuf-drm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_drm_CFLAGS) $(CFLAGS) -MT weston_dmabuf_drm-simple-dmabuf-drm.o -MD -MP -MF $(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Tpo -c -o weston_dmabuf_drm-simple-dmabuf-drm.o `test -f 'simple-dmabuf-drm.c' || echo '$(srcdir)/'`simple-dmabuf-drm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Tpo $(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='simple-dmabuf-drm.c' object='weston_dmabuf_drm-simple-dmabuf-drm.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipc_test_CFLAGS) $(CFLAGS) -c -o test/ipc_test-test_main.o `test -f 'test/test_main.c' || echo '$(srcdir)/'`test/test_main.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_drm_CFLAGS) $(CFLAGS) -c -o weston_dmabuf_drm-simple-dmabuf-drm.o `test -f 'simple-dmabuf-drm.c' || echo '$(srcdir)/'`simple-dmabuf-drm.c
 
-test/ipc_test-test_main.obj: test/test_main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipc_test_CFLAGS) $(CFLAGS) -MT test/ipc_test-test_main.obj -MD -MP -MF test/$(DEPDIR)/ipc_test-test_main.Tpo -c -o test/ipc_test-test_main.obj `if test -f 'test/test_main.c'; then $(CYGPATH_W) 'test/test_main.c'; else $(CYGPATH_W) '$(srcdir)/test/test_main.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) test/$(DEPDIR)/ipc_test-test_main.Tpo test/$(DEPDIR)/ipc_test-test_main.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test/test_main.c' object='test/ipc_test-test_main.obj' libtool=no @AMDEPBACKSLASH@
+weston_dmabuf_drm-simple-dmabuf-drm.obj: simple-dmabuf-drm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_drm_CFLAGS) $(CFLAGS) -MT weston_dmabuf_drm-simple-dmabuf-drm.obj -MD -MP -MF $(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Tpo -c -o weston_dmabuf_drm-simple-dmabuf-drm.obj `if test -f 'simple-dmabuf-drm.c'; then $(CYGPATH_W) 'simple-dmabuf-drm.c'; else $(CYGPATH_W) '$(srcdir)/simple-dmabuf-drm.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Tpo $(DEPDIR)/weston_dmabuf_drm-simple-dmabuf-drm.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='simple-dmabuf-drm.c' object='weston_dmabuf_drm-simple-dmabuf-drm.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ipc_test_CFLAGS) $(CFLAGS) -c -o test/ipc_test-test_main.obj `if test -f 'test/test_main.c'; then $(CYGPATH_W) 'test/test_main.c'; else $(CYGPATH_W) '$(srcdir)/test/test_main.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_drm_CFLAGS) $(CFLAGS) -c -o weston_dmabuf_drm-simple-dmabuf-drm.obj `if test -f 'simple-dmabuf-drm.c'; then $(CYGPATH_W) 'simple-dmabuf-drm.c'; else $(CYGPATH_W) '$(srcdir)/simple-dmabuf-drm.c'; fi`
+
+weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.o: simple-dmabuf-egl-yuv-on-osd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_egl_yuv_on_osd_CFLAGS) $(CFLAGS) -MT weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.o -MD -MP -MF $(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Tpo -c -o weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.o `test -f 'simple-dmabuf-egl-yuv-on-osd.c' || echo '$(srcdir)/'`simple-dmabuf-egl-yuv-on-osd.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Tpo $(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='simple-dmabuf-egl-yuv-on-osd.c' object='weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_egl_yuv_on_osd_CFLAGS) $(CFLAGS) -c -o weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.o `test -f 'simple-dmabuf-egl-yuv-on-osd.c' || echo '$(srcdir)/'`simple-dmabuf-egl-yuv-on-osd.c
+
+weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.obj: simple-dmabuf-egl-yuv-on-osd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_egl_yuv_on_osd_CFLAGS) $(CFLAGS) -MT weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.obj -MD -MP -MF $(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Tpo -c -o weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.obj `if test -f 'simple-dmabuf-egl-yuv-on-osd.c'; then $(CYGPATH_W) 'simple-dmabuf-egl-yuv-on-osd.c'; else $(CYGPATH_W) '$(srcdir)/simple-dmabuf-egl-yuv-on-osd.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Tpo $(DEPDIR)/weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='simple-dmabuf-egl-yuv-on-osd.c' object='weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(weston_dmabuf_egl_yuv_on_osd_CFLAGS) $(CFLAGS) -c -o weston_dmabuf_egl_yuv_on_osd-simple-dmabuf-egl-yuv-on-osd.obj `if test -f 'simple-dmabuf-egl-yuv-on-osd.c'; then $(CYGPATH_W) 'simple-dmabuf-egl-yuv-on-osd.c'; else $(CYGPATH_W) '$(srcdir)/simple-dmabuf-egl-yuv-on-osd.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-libjsonipc_laHEADERS: $(libjsonipc_la_HEADERS)
-	@$(NORMAL_INSTALL)
-	@list='$(libjsonipc_la_HEADERS)'; test -n "$(libjsonipc_ladir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(libjsonipc_ladir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(libjsonipc_ladir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(libjsonipc_ladir)'"; \
-	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(libjsonipc_ladir)" || exit $$?; \
-	done
-
-uninstall-libjsonipc_laHEADERS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(libjsonipc_la_HEADERS)'; test -n "$(libjsonipc_ladir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(libjsonipc_ladir)'; $(am__uninstall_files_from_dir)
+	-rm -rf protocol/.libs protocol/_libs
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -591,13 +681,15 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
-check: check-am
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS)
+check: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) check-am
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(libjsonipc_ladir)"; do \
+	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
+install: $(BUILT_SOURCES)
+	$(MAKE) $(AM_MAKEFLAGS) install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -623,19 +715,20 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f test/$(DEPDIR)/$(am__dirstamp)
-	-rm -f test/$(am__dirstamp)
+	-rm -f protocol/$(DEPDIR)/$(am__dirstamp)
+	-rm -f protocol/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
-	clean-noinstPROGRAMS mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libtool \
+	clean-noinstLTLIBRARIES mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) test/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) protocol/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -652,13 +745,13 @@ info: info-am
 
 info-am:
 
-install-data-am: install-libjsonipc_laHEADERS
+install-data-am:
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am:
+install-exec-am: install-binPROGRAMS
 
 install-html: install-html-am
 
@@ -681,7 +774,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) test/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) protocol/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -698,27 +791,43 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libjsonipc_laHEADERS
+uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: install-am install-strip
+.MAKE: all check install install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstLTLIBRARIES clean-noinstPROGRAMS \
-	cscopelist-am ctags ctags-am distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-libjsonipc_laHEADERS \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-libjsonipc_laHEADERS
+.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
+	clean-binPROGRAMS clean-generic clean-libtool \
+	clean-noinstLTLIBRARIES cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 
+
+.SECONDEXPANSION:
+# Copy form weston/Makefile.am
+define protostability
+$(if $(findstring unstable,$1),unstable,stable)
+endef
+
+define protoname
+$(shell echo $1 | $(SED) 's/\([a-z\-]\+\)-[a-z]\+-v[0-9]\+/\1/')
+endef
+
+protocol/%-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability, $$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) code < $< > $@
+
+protocol/%-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability, $$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) client-header < $< > $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

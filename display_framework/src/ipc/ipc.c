@@ -351,6 +351,7 @@ client_ctx* client_create(const char* type) {
     if (ret != 0) {
         DEBUG_INFO("client connect failed!");
         close(client_socket);
+        free(ctx->name);
         free(ctx);
         return NULL;
     }

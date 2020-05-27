@@ -24,6 +24,7 @@
 
 
 //Must leave a NULL to list end.
+//The last one element will not be handle.
 #define for_each_list(pos, list_p)  for (pos = list_p; pos->next != NULL; pos = pos->next)
 
 /**
@@ -86,16 +87,45 @@ typedef struct _connector_list {
 } connector_list;
 
 
+typedef struct _compositor_interface {
+    switch_mode switch_mode;
+    force_refresh force_refresh;
+} compositor_interface;
+
+typedef struct _compositor_output_list {
+    struct _compositor_output_list* prev;
+    struct _compositor_output_list* next;
+    struct compositor_output* data;
+    connector_list conn;
+    bool enable;
+} compositor_output_list;
+
+#define MAX_TASK_NUM 10
+typedef struct _helper_task_queue {
+    json_object* task[MAX_TASK_NUM];
+    int put_index;
+    int get_index;
+} helper_task_queue;
+
 /* The server only one instance in one process so use global value
- * g_output : hold the weston output
- * g_switch_mode_fun : hold the drm output's switch mode function
+ * g_output_list: hold the weston output
+ * g_interface: hold the api of compositor
  * mutex : for the globle value.
  * g_server_ctx : use to save a only one instance ipc server context
  * global_connector_list : the connector list current.
  * g_ui_viewport : the ui viewport.
  */
+
+/* For compatible with old version */
 output_ctx g_output = NULL;
-switch_mode g_switch_mode_fun = NULL;
+
+compositor_output_list g_output_list = { 0 };
+compositor_interface g_interface = { 0 };
+
+
+helper_task_queue  g_task_after_repaint_cycle = { 0 };
+
+
 pthread_mutex_t mutex;
 server_ctx* g_server_ctx = NULL;
 int g_drm_fd = -1;
@@ -108,6 +138,8 @@ drm_helper_size g_ui_size = { 0, 0 };
 drmModeModeInfo g_display_mode;
 
 
+
+void update_connector_props(connector_list* connector);
 
 /* TODO: reduce the codesize
  * NOTE :The format need same as the client's json resovle format.
@@ -298,6 +330,76 @@ bool parse_modestring(const char* modestring, drm_helper_mode* mode) {
     return true;
 }
 
+bool schedule_task(helper_task_queue* queue, json_object* task) {
+    json_object* cmd = NULL;
+    int next = (queue->put_index + 1) % MAX_TASK_NUM;
+
+    if (next == queue->get_index) {
+        DEBUG_INFO("task queue full");
+        return false;
+    }
+    if (0 != json_object_deep_copy(task, &cmd, NULL)) {
+        return false;
+    }
+    queue->task[queue->put_index] = cmd;
+    queue->put_index = next;
+    return true;
+}
+
+
+bool have_task(helper_task_queue* queue) {
+    return (queue->get_index != queue->put_index);
+}
+
+bool get_task(helper_task_queue* queue, json_object** task) {
+    int next = (queue->get_index + 1) % MAX_TASK_NUM;
+
+    if (have_task(queue)) {
+        *task = queue->task[queue->get_index];
+        queue->task[queue->get_index] = NULL;
+        queue->get_index = next;
+        return true;
+    }
+    return false;
+}
+
+void process_task(json_object* data_in, json_object** data_out) {
+    int ret = 0;
+    json_object* tmp = NULL;
+    json_object* opt = NULL;
+    *data_out = NULL;
+    assert(0 != json_object_object_get_ex(data_in, "cmd", &tmp));
+    //cmd's buffer under the json object "data_in"
+    const char* cmd = json_object_get_string(tmp);
+    json_object_object_get_ex(data_in, "value", &opt);
+    DEBUG_INFO("process task:%s", cmd);
+    if (0 == strcmp("set mode", cmd)) {
+        drm_helper_mode mode;
+        assert(opt);
+        const char* value = json_object_get_string(opt);
+        if (true == parse_modestring(value, &mode)) {
+            pthread_mutex_lock(&mutex);
+            if (g_interface.switch_mode) {
+                if (g_output_list.data) {
+                    compositor_output_list* current;
+                    for_each_list(current, &g_output_list) {
+                        if (current->enable) {
+                            assert(current->data);
+                            g_interface.switch_mode(current->data, &mode);
+                        }
+                    }
+                } else if (g_output) {
+                    g_interface.switch_mode(g_output, &mode);
+                }
+            }
+            pthread_mutex_unlock(&mutex);
+        } else {
+            ret = -1;
+        }
+    }
+    json_object_put(data_in);
+}
+
 
 /*
    json formate:
@@ -328,22 +430,28 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
             ret = -1;
         } else {
             const char* value = json_object_get_string(opt);
+            drm_helper_mode mode;
             DEBUG_INFO("CMD set mode :%s", value);
-            drm_helper_mode m;
-            if (false == parse_modestring(value, &m)) {
+            if (false == parse_modestring(value, &mode)) {
                 ret = -1;
             } else {
                 pthread_mutex_lock(&mutex);
-                if (g_output && g_switch_mode_fun) {
-                    g_switch_mode_fun(g_output, &m);
-                } else {
-                    if (g_switch_mode_fun == NULL) {
-                        DEBUG_INFO("Output not enabled");
-                    } else {
-                        DEBUG_INFO("Output not ready");
-                    }
+                if (false == schedule_task(&g_task_after_repaint_cycle, data_in)) {
+                    DEBUG_INFO("schedule task failed");
                     ret = -1;
                 }
+                //trigger a refresh, for the next repaint
+                if (g_interface.force_refresh && g_output_list.data) {
+                    //TODO: refresh for need output olny
+                    compositor_output_list* current;
+                    for_each_list(current, &g_output_list) {
+                        if (current->enable) {
+                            assert(current->data);
+                            g_interface.force_refresh(current->data);
+                        }
+                    }
+                }
+
                 pthread_mutex_unlock(&mutex);
             }
         }
@@ -625,10 +733,16 @@ void help_delete_connector(drmModeConnector* connector) {
     END_EVENT;
 }
 
-void help_set_switch_mode_function(output_ctx ctx, switch_mode fun) {
+void help_set_switch_mode_function(struct compositor_output* ctx, switch_mode fun) {
     BEGING_EVENT;
+    g_interface.switch_mode = fun;
     g_output = ctx;
-    g_switch_mode_fun = fun;
+    END_EVENT;
+}
+
+void help_set_force_refresh_function(force_refresh fun) {
+    BEGING_EVENT;
+    g_interface.force_refresh = fun;
     END_EVENT;
 }
 
@@ -660,36 +774,165 @@ int help_atomic_req_add_prop(drmModeAtomicReq *req) {
 }
 
 void help_do_repaint_cycle_completed(void) {
-    int ret;
-    if (g_atomic_modeset_enable == 0) {
-        //Update the props
-        BEGING_EVENT;
-        connector_list* current;
-        for_each_list(current, &global_connector_list) {
-            int i;
-            if (current->data == NULL) {
-                continue;
-            }
-            drmModeConnector* conn = current->data;
-            drm_property_info* props = current->props;
-            for (i = 0; i < DRM_CONNECTOR_PROPERTY__COUNT; i++) {
-                if (props[i].need_change) {
-                    if (props[i].prop_id == 0) {
-                        DEBUG_INFO("%s prop_id is 0", props[i].name);
-                        continue;
-                    }
-                    if (props[i].prop_id) {
-                        DEBUG_INFO("Set %s to %lld", props[i].name, props[i].new_value);
-                        //ret = drmModeConnectorSetProperty(g_drm_fd, conn->connector_id, props[i].prop_id, props[i].new_value);
-                        if (ret) {
-                            DEBUG_INFO("Update property error");
-                        }
-                    }
-                    props[i].need_change = 0;
-                }
-            }
+    json_object* task = NULL;
+    json_object* result = NULL;
+    bool got_task = false;
+    DEBUG_INFO("cycle_completed");
+    do {
+        if (!have_task(&g_task_after_repaint_cycle)) {
+            break;
         }
+
+        BEGING_EVENT;
+        got_task = get_task(&g_task_after_repaint_cycle, &task);
         END_EVENT;
 
+        if (got_task && task) {
+            process_task(task, &result);
+        }
+    } while (got_task);
+}
+
+void dump_output_status(const char* fname) {
+#if DEBUG
+    compositor_output_list* current;
+    fprintf(stderr, "Dump output info at [%s]:", fname);
+    int id = 0;
+    for_each_list(current, &g_output_list) {
+        fprintf(stderr, "==>[output:%d(%p):%p enable=%d conn=%p ", id, current, current->data, current->enable, current->conn.data);
+        if (current->conn.data)
+            fprintf(stderr, "type=%d", current->conn.data->connector_type);
+        fprintf(stderr, "]");
+        id++;
+    };
+    fprintf(stderr, "\n");
+#endif
+}
+
+void help_updata_compositor_output(struct compositor_output* older, struct compositor_output* newer) {
+    if (older == newer) {
+        return;
     }
+    BEGING_EVENT;
+    compositor_output_list* current;
+    bool updated = false;
+    int update_index = 0;
+
+    int index = 0;
+    DEBUG_INFO("update old:%p, newer:%p", older, newer);
+    for_each_list(current, &g_output_list) {
+        //remove old output or replace same one
+        if (older == NULL) {
+            if (current->data == newer) {
+                updated = true;
+                update_index = index;
+                break;
+            }
+        } else if (current->data == older) {
+            updated = true;
+            update_index = index;
+            break;
+        }
+        index++;
+    }
+
+    index = 0;
+    //remove the output same as newer
+    for_each_list(current, &g_output_list) {
+        if (current->data == newer) {
+            if (updated && update_index != index) {
+                //hold a empty output
+                current->data = NULL;
+                //current->conn = NULL;
+                current->enable = false;
+            } else if (!updated) {
+                updated = true;
+                update_index = index;
+            }
+        }
+        index++;
+    }
+    //Seek to newer position
+    index = 0;
+    for_each_list(current, &g_output_list) {
+        if (updated && index == update_index) {
+            //current is the newer position
+            break;
+        }
+        if (!updated && current->data == NULL) {
+            //put into empty pos
+            updated = true;
+            update_index = index;
+            break;
+        }
+        index++;
+    }
+
+    if (!updated && newer != NULL) {
+        //Need append a empty element at end
+        //And Use current element
+        assert(current->next == NULL);
+        current->next = calloc(sizeof(compositor_output_list), 1);
+        if (current->next == NULL) {
+            fprintf(stderr, "out of memory, can't append output list [%s]\n", __func__);
+            goto error_out;
+        }
+        current->next->prev = current;
+        current->next->next = NULL;
+        updated = true;
+        update_index = index;
+    }
+    {
+        // do real update newer output
+        current->data = newer;
+        //current->conn = NULL;
+        current->enable = false;
+    }
+
+    //shrink empty output
+    index = 0;
+    bool need_remove_prev = false;
+    compositor_output_list* need_remove = NULL;
+    compositor_output_list* last_element = &g_output_list;
+    for (current = &g_output_list; current != NULL; current = current->next) {
+        //remain one empty element at the end
+        if (current->data == NULL && current != &g_output_list && current->next != NULL) {
+            current->prev->next = current->next;
+            current->next->prev = current->prev;
+            free(current);
+        } else if (current->next != NULL) {
+            //last not empty element or first element
+            last_element = current;
+        }
+    }
+
+    if (g_output_list.data == NULL && last_element != &g_output_list) {
+        //swap end with first, then remove the last
+        last_element->prev->next = last_element->next;
+        last_element->next = g_output_list.next;
+        last_element->prev = NULL;
+        memcpy(&g_output_list, last_element, sizeof(connector_list));
+        free(last_element);
+    }
+
+error_out:
+    dump_output_status(__func__);
+    END_EVENT;
+}
+
+void help_switch_compositor_output(struct compositor_output* output, bool enable) {
+    compositor_output_list* current;
+    if (output == NULL)
+        return;
+
+    BEGING_EVENT;
+    for_each_list(current, &g_output_list) {
+        if (output == current->data) {
+            current->enable = enable;
+            break;
+        }
+    }
+
+    dump_output_status(__func__);
+    END_EVENT;
 }

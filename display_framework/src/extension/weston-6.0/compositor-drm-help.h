@@ -38,10 +38,16 @@ typedef struct _drm_helper_size {
 	uint32_t w, h;
 } drm_helper_size;
 
-typedef void* output_ctx;
+/* A dummy define, we will not use compositor_output's implement (the way same as wl_surface)
+ * it save weston_output for weston
+ */
+struct compositor_output;
 
-/* the switch_mode function which used by message handle*/
-typedef int (*switch_mode)(output_ctx ctx, drm_helper_mode* mode);
+/* For compatible with old version */
+typedef struct compositor_output* output_ctx;
+
+typedef int (*switch_mode)(struct compositor_output* output, drm_helper_mode* mode);
+typedef int (*force_refresh)(struct compositor_output* output);
 
 /* create a ipc thread to handle(m_message_handle)
  * the message from client
@@ -72,13 +78,21 @@ void help_update_display_mode_info(drmModeModeInfo* mode);
 void help_delete_connector(drmModeConnector* connector);
 
 /*Call it when update weston compositor's switch mode function*/
-void help_set_switch_mode_function(output_ctx ctx, switch_mode fun);
+void help_set_switch_mode_function(struct compositor_output* output, switch_mode fun);
+
+void help_set_force_refresh_function(force_refresh fun);
 
 /*Call it when need update you prop befor atomic commit*/
 int help_atomic_req_add_prop(drmModeAtomicReq *req);
 
 /*Call it when repaint cycle completed*/
 void help_do_repaint_cycle_completed(void);
+
+/*Call it when compositor output changed (for multi-screen) */
+void help_updata_compositor_output(struct compositor_output* old_output,
+        struct compositor_output* new_output);
+
+void help_switch_compositor_output(struct compositor_output* output, bool enable);
 
 #ifdef __cplusplus
 }

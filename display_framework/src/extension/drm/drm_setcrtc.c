@@ -353,7 +353,7 @@ void wait_connection() {
     sleep(3);
 }
 
-char str[] = "d:c:m:p:C:";
+char str[] = "d:c:m:p:C:s:";
 int main(int argc, char** argv) {
     int c;
     int ret = 0;
@@ -363,6 +363,8 @@ int main(int argc, char** argv) {
     int connector_id = -1;
     int crtc_id = -1;
     struct device dev;
+    int run_as_service = 1;
+
     pthread_mutex_init(&main_mutex, NULL);
     pthread_cond_init(&main_cond, NULL);
     user_stop = false;
@@ -389,6 +391,9 @@ int main(int argc, char** argv) {
                 break;
             case 'C':
                 crtc_id = atoi(optarg);
+                break;
+            case 's':
+                run_as_service = atoi(optarg);
                 break;
             default:
                 printf("Unknow Usage:-%c\nUsage %s: -d device_path -c connector_id -C crtc_id -m mode_str -p refresh_rate\n\tegl: %s -d %s -m 1920x1080 -p 60\n",c, argv[0], argv[0], device_name);
@@ -457,7 +462,6 @@ int main(int argc, char** argv) {
         fprintf(stderr, "User stop\n");
         goto out_error0;
     }
-
 
     uint64_t cap = 0;
     ret = drmGetCap(dev.fd, DRM_CAP_DUMB_BUFFER, &cap);
@@ -533,12 +537,23 @@ int main(int argc, char** argv) {
     uint32_t connectors[2] = {0};
     connectors[0] = connector_id;
     fprintf(stdout, "Set crtc[%d] with conn[%u] use displaymode:%s@%u\n", crtc_id, connectors[0], mode->name, mode->vrefresh);
+    if (!drmIsMaster(dev.fd))
+        drmSetMaster(dev.fd);
     ret = drmModeSetCrtc(dev.fd, crtc_id, fb_id,
             0, 0, connectors , 1,
             mode);
+    drmDropMaster(dev.fd);
     if (ret) {
         fprintf(stderr, "failed to set mode: %s\n", strerror(errno));
         goto out_error2;
+    }
+
+    /* not run as service */
+    if (!run_as_service) {
+        free(bo);
+        drmClose(dev.fd);
+        fprintf(stderr, "exit after set mode.\n");
+        return 0;
     }
 
     /* Set up our event handler */

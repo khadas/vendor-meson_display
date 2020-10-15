@@ -60,19 +60,13 @@ struct resources {
 
 struct device {
     int fd;
-
     struct resources *resources;
 
     struct {
         unsigned int width;
         unsigned int height;
-
-        unsigned int fb_id;
-        struct bo *bo;
-        struct bo *cursor_bo;
     } mode;
 
-    int use_atomic;
     drmModeAtomicReq *req;
 };
 
@@ -175,123 +169,204 @@ const char *util_lookup_connector_type_name(unsigned int type)
             ARRAY_SIZE(connector_type_names));
 }
 
+/*Copy from libdrm - modetest*/
 static struct resources *get_resources(struct device *dev)
 {
-    struct resources *res;
-    int i;
+	struct resources *res;
+	int i;
 
-    res = calloc(1, sizeof(*res));
-    if (res == 0)
-        return NULL;
+	res = calloc(1, sizeof(*res));
+	if (res == 0)
+		return NULL;
 
-    drmSetClientCap(dev->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+	drmSetClientCap(dev->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
 
-    res->res = drmModeGetResources(dev->fd);
-    if (!res->res) {
-        fprintf(stderr, "drmModeGetResources failed: %s\n",
-                strerror(errno));
-        goto error;
-    }
+	res->res = drmModeGetResources(dev->fd);
+	if (!res->res) {
+		fprintf(stderr, "drmModeGetResources failed: %s\n",
+			strerror(errno));
+		goto error;
+	}
 
-    res->crtcs = calloc(res->res->count_crtcs, sizeof(*res->crtcs));
-    res->encoders = calloc(res->res->count_encoders, sizeof(*res->encoders));
-    res->connectors = calloc(res->res->count_connectors, sizeof(*res->connectors));
-    res->fbs = calloc(res->res->count_fbs, sizeof(*res->fbs));
+	res->crtcs = calloc(res->res->count_crtcs, sizeof(*res->crtcs));
+	res->encoders = calloc(res->res->count_encoders, sizeof(*res->encoders));
+	res->connectors = calloc(res->res->count_connectors, sizeof(*res->connectors));
+	res->fbs = calloc(res->res->count_fbs, sizeof(*res->fbs));
 
-    if (!res->crtcs || !res->encoders || !res->connectors || !res->fbs)
-        goto error;
+	if (!res->crtcs || !res->encoders || !res->connectors || !res->fbs)
+		goto error;
 
 #define get_resource(_res, __res, type, Type)					\
-    do {									\
-        for (i = 0; i < (int)(_res)->__res->count_##type##s; ++i) {	\
-            (_res)->type##s[i].type =				\
-            drmModeGet##Type(dev->fd, (_res)->__res->type##s[i]); \
-            if (!(_res)->type##s[i].type)				\
-            fprintf(stderr, "could not get %s %i: %s\n",	\
-#type, (_res)->__res->type##s[i],	\
-strerror(errno));			\
-        }								\
-    } while (0)
+	do {									\
+		for (i = 0; i < (int)(_res)->__res->count_##type##s; ++i) {	\
+			(_res)->type##s[i].type =				\
+				drmModeGet##Type(dev->fd, (_res)->__res->type##s[i]); \
+			if (!(_res)->type##s[i].type)				\
+				fprintf(stderr, "could not get %s %i: %s\n",	\
+					#type, (_res)->__res->type##s[i],	\
+					strerror(errno));			\
+		}								\
+	} while (0)
 
-    get_resource(res, res, crtc, Crtc);
-            get_resource(res, res, encoder, Encoder);
-            get_resource(res, res, connector, Connector);
-            get_resource(res, res, fb, FB);
+	get_resource(res, res, crtc, Crtc);
+	get_resource(res, res, encoder, Encoder);
+	get_resource(res, res, connector, Connector);
+	get_resource(res, res, fb, FB);
 
-            /* Set the name of all connectors based on the type name and the per-type ID. */
-            for (i = 0; i < res->res->count_connectors; i++) {
-                struct connector *connector = &res->connectors[i];
-                drmModeConnector *conn = connector->connector;
-                int num;
+	/* Set the name of all connectors based on the type name and the per-type ID. */
+	for (i = 0; i < res->res->count_connectors; i++) {
+		struct connector *connector = &res->connectors[i];
+		drmModeConnector *conn = connector->connector;
+		int num;
 
-                num = asprintf(&connector->name, "%s-%u",
-                        util_lookup_connector_type_name(conn->connector_type),
-                        conn->connector_type_id);
-                if (num < 0)
-                    goto error;
-            }
+		num = asprintf(&connector->name, "%s-%u",
+			 util_lookup_connector_type_name(conn->connector_type),
+			 conn->connector_type_id);
+		if (num < 0)
+			goto error;
+	}
 
 #define get_properties(_res, __res, type, Type)					\
-            do {									\
-                for (i = 0; i < (int)(_res)->__res->count_##type##s; ++i) {	\
-                    struct type *obj = &res->type##s[i];			\
-                    unsigned int j;						\
-                    obj->props =						\
-                    drmModeObjectGetProperties(dev->fd, obj->type->type##_id, \
-                            DRM_MODE_OBJECT_##Type); \
-                    if (!obj->props) {					\
-                        fprintf(stderr,					\
-                                "could not get %s %i properties: %s\n", \
-#type, obj->type->type##_id,		\
-                                strerror(errno));			\
-                        continue;					\
-                    }							\
-                    obj->props_info = calloc(obj->props->count_props,	\
-                            sizeof(*obj->props_info));	\
-                    if (!obj->props_info)					\
-                    continue;					\
-                    for (j = 0; j < obj->props->count_props; ++j)		\
-                    obj->props_info[j] =				\
-                    drmModeGetProperty(dev->fd, obj->props->props[j]); \
-                }								\
-            } while (0)
+	do {									\
+		for (i = 0; i < (int)(_res)->__res->count_##type##s; ++i) {	\
+			struct type *obj = &res->type##s[i];			\
+			unsigned int j;						\
+			obj->props =						\
+				drmModeObjectGetProperties(dev->fd, obj->type->type##_id, \
+							   DRM_MODE_OBJECT_##Type); \
+			if (!obj->props) {					\
+				fprintf(stderr,					\
+					"could not get %s %i properties: %s\n", \
+					#type, obj->type->type##_id,		\
+					strerror(errno));			\
+				continue;					\
+			}							\
+			obj->props_info = calloc(obj->props->count_props,	\
+						 sizeof(*obj->props_info));	\
+			if (!obj->props_info)					\
+				continue;					\
+			for (j = 0; j < obj->props->count_props; ++j)		\
+				obj->props_info[j] =				\
+					drmModeGetProperty(dev->fd, obj->props->props[j]); \
+		}								\
+	} while (0)
 
-            get_properties(res, res, crtc, CRTC);
-                                get_properties(res, res, connector, CONNECTOR);
+	get_properties(res, res, crtc, CRTC);
+	get_properties(res, res, connector, CONNECTOR);
 
-                                for (i = 0; i < res->res->count_crtcs; ++i)
-                                    res->crtcs[i].mode = &res->crtcs[i].crtc->mode;
+	for (i = 0; i < res->res->count_crtcs; ++i)
+		res->crtcs[i].mode = &res->crtcs[i].crtc->mode;
 
-                                res->plane_res = drmModeGetPlaneResources(dev->fd);
-                                if (!res->plane_res) {
-                                    fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
-                                            strerror(errno));
-                                    return res;
-                                }
+	res->plane_res = drmModeGetPlaneResources(dev->fd);
+	if (!res->plane_res) {
+		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
+			strerror(errno));
+		return res;
+	}
 
-                                res->planes = calloc(res->plane_res->count_planes, sizeof(*res->planes));
-                                if (!res->planes)
-                                    goto error;
+	res->planes = calloc(res->plane_res->count_planes, sizeof(*res->planes));
+	if (!res->planes)
+		goto error;
 
-                                get_resource(res, plane_res, plane, Plane);
-                                get_properties(res, plane_res, plane, PLANE);
+	get_resource(res, plane_res, plane, Plane);
+	get_properties(res, plane_res, plane, PLANE);
 
-                                return res;
+	return res;
 
 error:
-                                free_resources(res);
-                                return NULL;
+	free_resources(res);
+	return NULL;
 }
 
-struct bo
-{
-    int fd;
-    void *ptr;
-    size_t size;
-    size_t offset;
-    size_t pitch;
-    unsigned handle;
+/* -----------------------------------------------------------------------------
+ * Properties: from libdrm modetest
+ */
+
+struct property_arg {
+	uint32_t obj_id;
+	uint32_t obj_type;
+	char name[DRM_PROP_NAME_LEN+1];
+	uint32_t prop_id;
+	uint64_t value;
+	bool optional;
 };
+
+static bool set_property(struct device *dev, struct property_arg *p)
+{
+	drmModeObjectProperties *props = NULL;
+	drmModePropertyRes **props_info = NULL;
+	const char *obj_type;
+	int ret;
+	int i;
+
+	p->obj_type = 0;
+	p->prop_id = 0;
+
+#define find_object(_res, __res, type, Type)					\
+	do {									\
+		for (i = 0; i < (int)(_res)->__res->count_##type##s; ++i) {	\
+			struct type *obj = &(_res)->type##s[i];			\
+			if (obj->type->type##_id != p->obj_id)			\
+				continue;					\
+			p->obj_type = DRM_MODE_OBJECT_##Type;			\
+			obj_type = #Type;					\
+			props = obj->props;					\
+			props_info = obj->props_info;				\
+		}								\
+	} while(0)								\
+
+	find_object(dev->resources, res, crtc, CRTC);
+	if (p->obj_type == 0)
+		find_object(dev->resources, res, connector, CONNECTOR);
+	if (p->obj_type == 0)
+		find_object(dev->resources, plane_res, plane, PLANE);
+	if (p->obj_type == 0) {
+		fprintf(stderr, "Object %i not found, can't set property\n",
+			p->obj_id);
+		return false;
+	}
+
+	if (!props) {
+		fprintf(stderr, "%s %i has no properties\n",
+			obj_type, p->obj_id);
+		return false;
+	}
+
+	for (i = 0; i < (int)props->count_props; ++i) {
+		if (!props_info[i])
+			continue;
+		if (strcmp(props_info[i]->name, p->name) == 0)
+			break;
+	}
+
+	if (i == (int)props->count_props) {
+		if (!p->optional)
+			fprintf(stderr, "%s %i has no %s property\n",
+				obj_type, p->obj_id, p->name);
+		return false;
+	}
+
+	p->prop_id = props->props[i];
+
+        ret = drmModeAtomicAddProperty(dev->req, p->obj_id, p->prop_id, p->value);
+	if (ret < 0)
+		fprintf(stderr, "failed to set %s %i property %s to %" PRIu64 ": %s\n",
+			obj_type, p->obj_id, p->name, p->value, strerror(errno));
+
+	return true;
+}
+
+static void add_property(struct device *dev, uint32_t obj_id,
+			       const char *name, uint64_t value)
+{
+	struct property_arg p;
+
+	p.obj_id = obj_id;
+	strcpy(p.name, name);
+	p.value = value;
+
+	set_property(dev, &p);
+}
 
 static drmModeModeInfo * connector_find_mode(struct device *dev, uint32_t con_id,
                                              const char *mode_str, const unsigned int vrefresh)
@@ -374,7 +449,6 @@ int main(int argc, char** argv) {
     signal(SIGINT, signal_handle);
     signal(SIGTERM, signal_handle);
 
-
     while ((c = getopt(argc, argv, str)) !=-1) {
         switch (c) {
             case 'd':
@@ -410,6 +484,14 @@ int main(int argc, char** argv) {
         fprintf(stderr, "failed to open device %s\n", strerror(errno));
         exit(-1);
     }
+    /*use atomic*/
+    ret = drmSetClientCap(dev.fd, DRM_CLIENT_CAP_ATOMIC, 1);
+    if (ret) {
+        fprintf(stderr, "no atomic modesetting support: %s\n", strerror(errno));
+        drmClose(dev.fd);
+        exit(-1);
+    }
+
     bool need_wait_connection = false;
     do {
         need_wait_connection = false;
@@ -460,100 +542,33 @@ int main(int argc, char** argv) {
 
     if (user_stop) {
         fprintf(stderr, "User stop\n");
-        goto out_error0;
+        goto out;
     }
 
-    uint64_t cap = 0;
-    ret = drmGetCap(dev.fd, DRM_CAP_DUMB_BUFFER, &cap);
-    if (ret || cap == 0) {
-        fprintf(stderr, "driver doesn't support the dumb buffer API\n");
-        ret = -1;
-        goto out_error0;
-    }
+    fprintf(stdout, "Set crtc[%d] with conn[%u] use displaymode:%s@%u\n", crtc_id,connector_id, mode->name, mode->vrefresh);
+    /*ATOMIC to set crtc-connector, but no plane&fb specified.*/
+    dev.req = drmModeAtomicAlloc();
 
-    struct bo *bo = calloc(1, sizeof(*bo));
-    if (bo == NULL) {
-        fprintf(stderr, "failed to allocate buffer object\n");
-        goto out_error1;
-    }
-    struct drm_mode_create_dumb arg_create;
-    memset(&arg_create, 0, sizeof(arg_create));
-    arg_create.bpp = 32;
-    arg_create.width = mode->hdisplay;
-    arg_create.height = mode->vdisplay;
-    ret = drmIoctl(dev.fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg_create);
+    add_property(&dev, connector_id, "CRTC_ID", crtc_id);
+
+    uint32_t mode_blobid = 0;
+    drmModeCreatePropertyBlob(dev.fd, mode, sizeof(*mode), &mode_blobid);
+    add_property(&dev, crtc_id, "MODE_ID", mode_blobid);
+    add_property(&dev, crtc_id, "ACTIVE", 1);
+
+    ret = drmModeAtomicCommit(dev.fd, dev.req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to create dumb buffer: %s\n", strerror(errno));
-        goto out_error1;
-    }
-    fprintf(stderr, "create buffer size:%" PRIu64 " pitch:%" PRIu32 " (%" PRIu32 "x%" PRIu32 ")\n",arg_create.size, arg_create.pitch, arg_create.width, arg_create.height);
-
-    bo->fd = dev.fd;
-    bo->handle = arg_create.handle;
-    bo->size = arg_create.size;
-    bo->pitch = arg_create.pitch;
-
-    struct drm_mode_map_dumb arg_map;
-    void *map = MAP_FAILED;
-    memset(&arg_map, 0, sizeof(arg_map));
-    arg_map.handle = bo->handle;
-    ret = drmIoctl(bo->fd, DRM_IOCTL_MODE_MAP_DUMB, &arg_map);
-    if (ret) {
-        fprintf(stderr, "failed to map dumb buffer: %s\n", strerror(errno));
-        goto out_error2;
+        fprintf(stderr, "failed to set mode: %d-%s\n", ret, strerror(errno));
+        goto out;
     }
 
-    errno = 0;
-    int page_size = getpagesize();
-    if (bo->size & (page_size - 1) || arg_map.offset & (page_size - 1)) {
-        fprintf(stderr, "Error drm map dump get offset not 4k uniform offset=%" PRIu64 , arg_map.offset);
-    } else {
-        map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED, bo->fd, arg_map.offset);
-    }
-    if (map != MAP_FAILED) {
-        if ((uintptr_t)map & (page_size - 1)) {
-            fprintf(stderr, "Buffer maped address or size incorrect, may be not 4k uniform\n, addr:%p ,size:%zu\n",map, bo->size);
-        }
-        //fill with 0;
-        memset(map, 0x0, bo->size);
-        munmap(map, bo->size);
-
-    } else {
-        fprintf(stderr, "Error failed to map buffer: %s\nmmap(0, %zu %#x, %#x, %d, %" PRIu64 "), may be relate with:_FILE_OFFSET_BITS!\n", strerror(errno), bo->size, PROT_READ|PROT_WRITE, MAP_SHARED, bo->fd, arg_map.offset);
-    }
-    unsigned int fb_id;
-    unsigned handles[4] = {0}, offset[4] = {0}, pitchs[4] = {0};
-
-    handles[0] = bo->handle;
-    pitchs[0] = bo->pitch;
-    ret = drmModeAddFB2(dev.fd, mode->hdisplay, mode->vdisplay,
-            FORMAT, handles, pitchs, offset, &fb_id, 0);
-    if (ret) {
-        fprintf(stderr, "failed to add fb (%ux%u): %s\n",
-                mode->hdisplay, mode->vdisplay, strerror(errno));
-        ret = -1;
-        goto out_error2;
-    }
-    uint32_t connectors[2] = {0};
-    connectors[0] = connector_id;
-    fprintf(stdout, "Set crtc[%d] with conn[%u] use displaymode:%s@%u\n", crtc_id, connectors[0], mode->name, mode->vrefresh);
-    if (!drmIsMaster(dev.fd))
-        drmSetMaster(dev.fd);
-    ret = drmModeSetCrtc(dev.fd, crtc_id, fb_id,
-            0, 0, connectors , 1,
-            mode);
-    drmDropMaster(dev.fd);
-    if (ret) {
-        fprintf(stderr, "failed to set mode: %s\n", strerror(errno));
-        goto out_error2;
-    }
+    drmModeAtomicFree(dev.req);
+    dev.req = NULL;
 
     /* not run as service */
     if (!run_as_service) {
-        free(bo);
-        drmClose(dev.fd);
         fprintf(stderr, "exit after set mode.\n");
-        return 0;
+        goto out;
     }
 
     /* Set up our event handler */
@@ -594,22 +609,7 @@ int main(int argc, char** argv) {
 #endif
     }
 
-    drmModeRmFB(dev.fd, fb_id);
-    struct drm_mode_destroy_dumb arg_destroy;
-    ret = 0;
-
-out_error2:
-    memset(&arg_destroy, 0, sizeof(arg_destroy));
-    arg_destroy.handle = bo->handle;
-
-    ret = drmIoctl(bo->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &arg_destroy);
-    if (ret)
-        fprintf(stderr, "failed to destroy dumb buffer: %s\n",
-                strerror(errno));
-
-out_error1:
-    free(bo);
-out_error0:
+out:
     if (dev.resources)
         free_resources(dev.resources);
     drmClose(dev.fd);

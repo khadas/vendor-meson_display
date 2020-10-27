@@ -566,6 +566,7 @@ int main(int argc, char** argv) {
     /* Poll for events */
     while (!user_stop) {
 #if 1
+        sleep(1);
         pthread_mutex_lock(&main_mutex);
         pthread_cond_wait(&main_cond, &main_mutex);
         pthread_mutex_unlock(&main_mutex);

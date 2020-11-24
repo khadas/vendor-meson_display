@@ -899,7 +899,9 @@ void help_updata_compositor_output(struct compositor_output* older, struct compo
         if (current->data == NULL && current != &g_output_list && current->next != NULL) {
             current->prev->next = current->next;
             current->next->prev = current->prev;
-            free(current);
+            need_remove = current;
+            current = current->prev;
+            free(need_remove);
         } else if (current->next != NULL) {
             //last not empty element or first element
             last_element = current;

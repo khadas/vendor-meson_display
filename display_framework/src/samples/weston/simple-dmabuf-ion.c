@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <IONmem.h>
+#include <IONmemPlayer.h>
 #include <linux/input.h>
 
 #include <wayland-client.h>

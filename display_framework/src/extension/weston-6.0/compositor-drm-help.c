@@ -435,10 +435,12 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
             if (false == parse_modestring(value, &mode)) {
                 ret = -1;
             } else {
-                pthread_mutex_lock(&mutex);
                 if (false == schedule_task(&g_task_after_repaint_cycle, data_in)) {
                     DEBUG_INFO("schedule task failed");
                     ret = -1;
+                }
+                else {
+                    help_do_repaint_cycle_completed();
                 }
                 //trigger a refresh, for the next repaint
                 if (g_interface.force_refresh && g_output_list.data) {
@@ -451,8 +453,6 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
                         }
                     }
                 }
-
-                pthread_mutex_unlock(&mutex);
             }
         }
     } else if (0 == strcmp("get modes", cmd)) {
@@ -782,11 +782,7 @@ void help_do_repaint_cycle_completed(void) {
         if (!have_task(&g_task_after_repaint_cycle)) {
             break;
         }
-
-        BEGING_EVENT;
         got_task = get_task(&g_task_after_repaint_cycle, &task);
-        END_EVENT;
-
         if (got_task && task) {
             process_task(task, &result);
         }

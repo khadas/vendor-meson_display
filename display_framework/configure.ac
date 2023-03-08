@@ -9,6 +9,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_SUBST(WARN_CFLAGS)
 AC_CONFIG_FILES([
   Makefile
+  src/extension/display_settings/Makefile
   src/ipc/Makefile
   src/extension/weston-6.0/Makefile
   src/extension/drm/Makefile
@@ -39,7 +40,6 @@ fi
 ], [debug=false])
 AM_CONDITIONAL(DEBUG, test "x$debug" = "xtrue")
 
-
 AC_ARG_WITH(weston-samples,
 			  [  --with-weston-samples    build weston samples], [with_weston_samples=yes], [with_weston_samples=no])
 AS_IF([test "x$with_weston_samples" != "xno"],
@@ -56,7 +56,6 @@ AS_IF([test "x$with_weston_samples" != "xno"],
 		 wayland_scanner=`$PKG_CONFIG --variable=wayland_scanner wayland-scanner`
 	 fi
 	 ])
-
 AM_CONDITIONAL(WESTON_SAMPLES, test "x$with_weston_samples" != "xno")
 
 PKG_CHECK_MODULES(EGL, [egl glesv2], [have_egl=yes], [have_egl=no])
@@ -67,6 +66,4 @@ AM_CONDITIONAL(ENABLE_WESTON_EXTENTION, test "x$have_json_c" = "xyes" -a "x$have
 
 AM_CONDITIONAL(ENABLE_DRM_FUNCTION, test "x$have_libdrm" = "xyes")
 CFLAGS="$CFLAGS -include config.h"
-
 AC_OUTPUT
-

@@ -17,6 +17,7 @@
 #include <linux/string.h>
 #include "display_settings.h"
 
+
 void display_event( ENUM_MESONDISPLAY_EVENT enEvent, void *eventData/*Optional*/)
 {
     printf("\n MESONDISPLAY_EVENT_CONNECTED    = 0,//!< Display connected event.\n"
@@ -24,13 +25,12 @@ void display_event( ENUM_MESONDISPLAY_EVENT enEvent, void *eventData/*Optional*/
                "Eevent:%d\n",enEvent);
 }
 
-int main(void)
+int main()
 {
-    printf("\n 0->set hdmi mode 1->set cvbs mode 2-> event test\n");
+    printf("\n 0->set hdmi mode 1->set cvbs mode 2-> event test 3->setdisplay --hdrPolicy\n");
     int select_s_g = 0;
     DisplayMode* modeInfo = NULL;
     modeInfo = (DisplayMode*)malloc(sizeof(DisplayMode));
-
     scanf("%d",&select_s_g);
     if (select_s_g == 0) {
         printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -48,12 +48,27 @@ int main(void)
         }else{
             printf("setDisplayModeFail\n");
         }
-    } else {
+    } else if(select_s_g == 2) {
         registerMesonDisplayEventCallback(display_event);
         startMesonDisplayUeventMonitor();
+    } else if (select_s_g == 3) {
+        printf("0->set Always Hdr 1->set Adaptive Hdr\n");
+        int Policy = 0;
+        scanf("%d",&Policy);
+        if (Policy == 0) {
+        if (setDisplayHDRPolicy(MESON_HDR_POLICY_FOLLOW_SINK,MESON_CONNECTOR_HDMIA) == 0) {
+            printf("set always hdr success\n");
+            }else{
+                printf("set always hdr fail\n");
+            }
+        } else if (Policy == 1){
+            if (setDisplayHDRPolicy(MESON_HDR_POLICY_FOLLOW_SOURCE,MESON_CONNECTOR_HDMIA) == 0) {
+                printf("set adaptive hdr success\n");
+            }else{
+                printf("set adaptive hdr fail\n");
+            }
+        }
     }
     return 0;
 }
-
-
 

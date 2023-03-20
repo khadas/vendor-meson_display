@@ -30,6 +30,12 @@ typedef enum _ENUM_MESONDISPLAY_EVENT {
     MESONDISPLAY_EVENT_DISCONNECTED , //!< Display disconnected event.\n"
 }ENUM_MESONDISPLAY_EVENT;
 
+typedef enum _ENUM_MESON_HDR_POLICY {
+    MESON_HDR_POLICY_FOLLOW_SINK      = 0,  //<---Always  HDR--->//
+    MESON_HDR_POLICY_FOLLOW_SOURCE     //<---Adaptive  HDR--->//
+} ENUM_MESON_HDR_POLICY;
+
+int setDisplayHDRPolicy(ENUM_MESON_HDR_POLICY hdrPolicy, MESON_CONNECTOR_TYPE connType);
 int setDisplayMode(DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType);
 typedef void (*mesonDisplayEventCallback)(ENUM_MESONDISPLAY_EVENT enEvent, void *eventData/*Optional*/);
 bool registerMesonDisplayEventCallback(mesonDisplayEventCallback cb);

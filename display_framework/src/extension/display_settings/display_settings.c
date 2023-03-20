@@ -17,8 +17,8 @@
 #include <linux/string.h>
 #include "display_settings.h"
 #include "libdrm_meson/meson_drm_settings.h"
-#define DEFAULT_CARD "/dev/dri/card0"
 #include "libdrm_meson/meson_drm_event.h"
+#define DEFAULT_CARD "/dev/dri/card0"
 
 bool registerMesonDisplayEventCallback(mesonDisplayEventCallback cb) { //register callback
     return RegisterDisplayEventCallback(cb);
@@ -75,3 +75,43 @@ out:
     close(fd);
     return  ret;
 }
+
+int setDisplayHDRPolicy(ENUM_MESON_HDR_POLICY hdrPolicy, MESON_CONNECTOR_TYPE connType) {
+    int res = -1;
+    int ret = -1;
+    int fd = 0;
+    drmModeAtomicReq *req = NULL;
+    fd = open(DEFAULT_CARD, O_RDWR|O_CLOEXEC);
+    if (fd < 0) {
+        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
+    if (ret) {
+        printf("no atomic setting support: %d\n",ret);
+        goto out;
+    }
+    req = drmModeAtomicAlloc();
+    if (req == NULL) {
+        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    res = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
+    if (res == -1) {
+        fprintf(stderr,"setHDRPolicyFail\n");
+        goto out;
+    }
+    ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+    if (ret) {
+        fprintf(stderr, "failed to set HDR Policy: %d-%s\n", ret, strerror(errno));
+        goto out;
+    }
+out:
+    if (req) {
+        drmModeAtomicFree(req);
+        req = NULL;
+    }
+    close(fd);
+    return  ret;
+}
+

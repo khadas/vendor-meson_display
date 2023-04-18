@@ -13,6 +13,8 @@ endif
 libdisplay_settings_la_LDFLAGS = -avoid-version -ldrm -ldrm_meson
 libdisplay_settings_la_SOURCES = display_settings.h \
                                  display_settings.c
+libdisplay_settings_ladir = $(includedir)/display_settings
+libdisplay_settings_la_HEADERS = display_settings.h
 
 libdisplay_settings_la_LIBADD = $(LIBDRM_LIBS) $(JSONC_LIBS)
 libdisplay_settings_la_CFLAGS = $(LIBDRM_CFLAGS)

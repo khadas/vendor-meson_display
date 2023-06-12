@@ -101,6 +101,7 @@ extern "C" {
 
     json_object* send_cmd_sync(drm_client_ctx* client, const char* cmd, void* opt, opt_type type);
 
+    void drm_help_client_get_debug_info(drm_client_ctx* client, int count);
 #ifdef __cplusplus
 }
 #endif //__cplusplus

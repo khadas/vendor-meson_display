@@ -90,6 +90,7 @@ typedef struct _connector_list {
 typedef struct _compositor_interface {
     switch_mode switch_mode;
     force_refresh force_refresh;
+    print_info print_info;
 } compositor_interface;
 
 typedef struct _compositor_output_list {
@@ -121,7 +122,7 @@ output_ctx g_output = NULL;
 
 compositor_output_list g_output_list = { 0 };
 compositor_interface g_interface = { 0 };
-
+struct weston_compositor* g_compositor = NULL;
 
 helper_task_queue  g_task_after_repaint_cycle = { 0 };
 
@@ -586,6 +587,12 @@ void m_message_handle(json_object* data_in, json_object** data_out) {
         DEBUG_INFO("CMD[%s] not support or incorrect parameter!", cmd);
         //reply a empty json object to avoid client block.
         *data_out = json_object_new_object();
+    } else if (0 == strcmp("get info", cmd)) {
+        errno = 0;
+        int nframes = json_object_get_int(opt);
+        if (errno != 0)
+            DEBUG_INFO("get nframes error:%d", errno);
+        g_interface.print_info(g_compositor, nframes);
     }
     json_object_put(data_in);
     if (ret != 0) {
@@ -933,4 +940,8 @@ void help_switch_compositor_output(struct compositor_output* output, bool enable
 
     dump_output_status(__func__);
     END_EVENT;
+}
+void help_set_printinfo_function(struct weston_compositor* ec, print_info fun) {
+    g_interface.print_info = fun;
+    g_compositor = ec;
 }

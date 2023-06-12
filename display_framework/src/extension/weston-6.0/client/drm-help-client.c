@@ -264,3 +264,6 @@ void free_connection_list(drm_connection_list* data) {
     }
     free(data);
 }
+void drm_help_client_get_debug_info(drm_client_ctx* client, int count) {
+    send_cmd(client, "get info", &count, OPT_TYPE_INT);
+}

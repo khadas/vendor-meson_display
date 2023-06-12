@@ -42,6 +42,7 @@ typedef struct _drm_helper_size {
  * it save weston_output for weston
  */
 struct compositor_output;
+struct weston_compositor;
 
 /* For compatible with old version */
 typedef struct compositor_output* output_ctx;
@@ -94,6 +95,8 @@ void help_updata_compositor_output(struct compositor_output* old_output,
 
 void help_switch_compositor_output(struct compositor_output* output, bool enable);
 
+typedef void (*print_info)(struct weston_compositor* ec, int count);
+void help_set_printinfo_function(struct weston_compositor* ec , print_info fun);
 #ifdef __cplusplus
 }
 #endif

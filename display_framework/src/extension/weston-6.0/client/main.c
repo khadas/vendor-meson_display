@@ -26,6 +26,7 @@ static const struct option long_option[] = {
     {"raw-cmd", required_argument, 0, 'r'},
     {"G", required_argument, 0, 'G'},
     {"S", required_argument, 0, 'S'},
+    {"debug", optional_argument, 0, 'd'},
     {0, 0, 0, 0}
 };
 
@@ -41,6 +42,7 @@ static void print_usage(const char* name) {
             "       -s,--set-connector-property \"[Content Protection | Color Depth | Color Space]\"=value\tset connector property\n"
             "       -G \"[ui-rect|display-mode]\"\tget [logic ui rect|display mode]\n"
             "       -S \"[ui-rect]\"\tset [logic ui rect]\n"
+            "       -d  --debug\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -166,6 +168,13 @@ int main(int argc, char* argv[]) {
                     }
                 } else {
                     send_cmd(client, optarg, NULL, OPT_TYPE_NULL);
+                }
+                break;
+            case 'd':
+                {
+                    int value = 1;
+                    printf("get info for %d frame(s) \n", value);
+                    drm_help_client_get_debug_info(client, value);
                 }
                 break;
             default:

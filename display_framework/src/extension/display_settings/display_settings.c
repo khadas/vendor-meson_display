@@ -19,6 +19,7 @@
 #include "libdrm_meson/meson_drm_settings.h"
 #include "libdrm_meson/meson_drm_event.h"
 #define DEFAULT_CARD "/dev/dri/card0"
+#include "libdrm_meson/meson_drm_log.h"
 
 int display_meson_get_open() {
     int fd = -1;
@@ -30,16 +31,15 @@ int display_meson_get_open() {
     }
     fd = open(card, O_RDONLY|O_CLOEXEC);
     if (fd < 0)
-        fprintf(stderr, "\n meson_open_drm drm card:%s open fail\n",card);
+        ERROR("meson_open_drm drm card:%s open fail",card);
     else
         drmDropMaster(fd);
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
     if (ret < 0)
-        fprintf(stderr, "Unable to set DRM atomic capability\n");
-
+        INFO("Unable to set DRM atomic capability");
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
     if (ret < 0)
-        fprintf(stderr, "Unable to set UNIVERSAL_PLANES\n");
+        INFO("Unable to set UNIVERSAL_PLANES\n");
     return fd;
 }
 
@@ -48,11 +48,11 @@ int display_meson_set_open() {
     int ret = -1;
     fd = open(DEFAULT_CARD, O_RDWR|O_CLOEXEC);
     if (fd < 0) {
-        fprintf(stderr, "failed to open device %s\n", strerror(errno));
+        ERROR("failed to open device %s", strerror(errno));
     }
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
     if (ret < 0) {
-        fprintf(stderr, "no atomic modesetting support\n");
+        INFO("no atomic modesetting support");
     }
     return fd;
 }
@@ -82,17 +82,17 @@ int setDisplayHDCPEnable(bool enable, MESON_CONNECTOR_TYPE connType) {
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setHDCPEnable(fd, req, enable, connType);
     if (res == -1) {
-        fprintf(stderr,"setHDCPEnableFail\n");
+        ERROR("setHDCPEnableFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set setHDCPEnable: %d-%s\n", ret, strerror(errno));
+        DEBUG("failed to set setHDCPEnable: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -122,7 +122,7 @@ void getDisplayEDIDData(MESON_CONNECTOR_TYPE connType, int * data_Len, char **da
     int fd = 0;
     fd = display_meson_get_open();
     if (data_Len == NULL || data == NULL) {
-        fprintf(stderr, "\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         return;
     }
     meson_drm_getEDIDData(fd, connType, data_Len, data);
@@ -137,17 +137,17 @@ int setDisplayAVMute(int mute, MESON_CONNECTOR_TYPE connType) {
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setAVMute(fd, req, mute, connType);
     if (res == -1) {
-        fprintf(stderr,"setAVMuteFail\n");
+        ERROR("setAVMuteFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set AVMute: %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set AVMute: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -167,18 +167,18 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_MESON_COLOR_SPACE color
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setColorDepth(fd, req, colorDepth, connType);
     res = meson_drm_setColorSpace(fd, req, colorSpace, connType);
     if (res == -1) {
-        fprintf(stderr,"set Fail\n");
+        ERROR("set Fail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set: %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -231,12 +231,12 @@ int getDisplayMode(DisplayMode* modeInfo, MESON_CONNECTOR_TYPE connType) {
     fd = display_meson_get_open();
     int ret = -1;
     if (modeInfo == NULL) {
-        printf("\n %s %d modeInfo == NULL return\n",__FUNCTION__,__LINE__);
+        ERROR("%s %d modeInfo == NULL return",__FUNCTION__,__LINE__);
         return ret;
     }
     ret = meson_drm_getModeInfo(fd, connType, modeInfo);
     if (ret == -1) {
-        printf("\n %s %d modeInfo get fail \n",__FUNCTION__,__LINE__);
+        ERROR("%s %d modeInfo get fail ",__FUNCTION__,__LINE__);
     }
     display_meson_close(fd);
     return ret;
@@ -259,17 +259,17 @@ int setDisplayHDRPolicy(ENUM_MESON_HDR_POLICY hdrPolicy, MESON_CONNECTOR_TYPE co
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
     if (res == -1) {
-        fprintf(stderr,"setHDRPolicyFail\n");
+        ERROR("setHDRPolicyFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set HDR Policy: %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set HDR Policy: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -304,17 +304,17 @@ int setDisplayHDCPContentType(ENUM_MESON_HDCP_Content_Type HDCPType, MESON_CONNE
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setHDCPContentType(fd, req, HDCPType, connType);
     if (res == -1) {
-        fprintf(stderr,"setDisplayHDCPContentTypeFail\n");
+        ERROR("setDisplayHDCPContentTypeFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set HDCP Content Type: %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set HDCP Content Type: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -352,17 +352,17 @@ int setDisplayDvEnable(int dvEnable, MESON_CONNECTOR_TYPE connType) {
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setDvEnable(fd, req, dvEnable, connType);
     if (res == -1) {
-        fprintf(stderr,"setDisplayDvEnableFail\n");
+        ERROR("setDisplayDvEnableFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set  Display Dv Enable : %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set  Display Dv Enable : %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -391,17 +391,17 @@ int setDisplayActive(int active, MESON_CONNECTOR_TYPE connType) {
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setActive(fd, req, active, connType);
     if (res == -1) {
-        fprintf(stderr,"setDisplayActiveFail\n");
+        ERROR("setDisplayActiveFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set Display Active : %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set Display Active : %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -418,7 +418,7 @@ int getDisplayActive(MESON_CONNECTOR_TYPE connType ) {
     fd = display_meson_get_open();
     int ret = -1;
     if (fd < 0) {
-       printf("\n%s %d fd < 0\n",__FUNCTION__,__LINE__);
+       ERROR("%s %d fd < 0",__FUNCTION__,__LINE__);
        return ret;
     }
     ret = meson_drm_getActive(fd, connType );
@@ -434,17 +434,17 @@ int setDisplayVrrEnabled(int VrrEnable, MESON_CONNECTOR_TYPE connType) {
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setVrrEnabled(fd, req, VrrEnable, connType);
     if (res == -1) {
-        fprintf(stderr,"setDisplayVrrEnabledFail\n");
+        ERROR("setDisplayVrrEnabledFail");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set Display VrrEnabled: %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set Display VrrEnabled: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:
@@ -480,23 +480,23 @@ int setDisplayMode(DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     int fd = 0;
     drmModeAtomicReq *req = NULL;
     if (modeInfo == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         return ret;
     }
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        printf("\n %s %d invalid parameter return\n",__FUNCTION__,__LINE__);
+        DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_changeMode(fd, req, modeInfo, connType);
     if (res == -1) {
-        fprintf(stderr,"changeModeFail\n");
+        ERROR("changeModeFail\n");
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        fprintf(stderr, "failed to set mode: %d-%s\n", ret, strerror(errno));
+        ERROR("failed to set mode: %d-%s", ret, strerror(errno));
         goto out;
     }
 out:

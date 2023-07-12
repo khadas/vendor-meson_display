@@ -37,7 +37,7 @@ int main()
     select_len = scanf("%d",&select_s);
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->event test 3->hdr policy 4->av mute 5->HDMI HDCP enable 6-><colorDepth, colorSpace>"
-        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode 12->dummy mode\n");
+        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode 12->dummy mode 13->video zorder\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -160,6 +160,21 @@ int main()
             }else{
                 printf("setModeFail\n");
             }
+    } else if (set == 13 && len == 1) {
+            printf("\n please enter the parameters in order(index zorder flag): \n");
+            //<--index：Representing video index  Index 0 corresponds to modifying video 0;Index 1 corresponds to modifying video 1 -->//
+            //<--zpos：Represents the zorder value set-->//
+            //<--flag： Make the settings effective  Set flag equal to 1 to indicate effectiveness-->//
+            int zorder = 0;
+            int index = 0;
+            int flag = 0;
+            len = scanf("%d %d %d", &index,&zorder,&flag);
+            if (len == 3) {
+                if (setDisplayVideoZorder(index, zorder, flag))
+                    printf("\n setDisplayVideoZorder fail:\n");
+                } else {
+                    printf("\n \ scanf fail\n");
+                }
         }
     }
     else if(select_s == 1 && select_len == 1) {

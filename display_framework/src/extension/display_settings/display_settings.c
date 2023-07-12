@@ -833,4 +833,16 @@ bool modeAttrSupportedCheck(char* modeName, ENUM_MESON_COLOR_SPACE colorSpace,
     return ret;
 }
 
+int setDisplayVideoZorder(unsigned int index, unsigned int zorder, unsigned int flag) {
+    int ret = -1;
+    int fd = 0;
+    DEBUG("%s %d set video zorder index:%d,zorder:%d,flag:%d",__FUNCTION__,__LINE__,index,zorder,flag);
+    fd = display_meson_set_open();
+    ret = meson_drm_setVideoZorder( fd, index, zorder, flag);
+    if (ret) {
+        ERROR("%s %d set video zorder Fail",ret, strerror(errno));
+    }
+    display_meson_close(fd);
+    return ret;
+}
 

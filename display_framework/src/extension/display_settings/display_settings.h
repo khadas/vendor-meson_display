@@ -119,6 +119,7 @@ int setDisplayVrrEnabled(int VrrEnable, MESON_CONNECTOR_TYPE connType);
 int getDisplayVrrEnabled(MESON_CONNECTOR_TYPE connType );
 ENUM_MESON_HDR_MODE getDisplayHdrStatus(MESON_CONNECTOR_TYPE connType );
 int setDisplayAutoMode(MESON_CONNECTOR_TYPE connType);
+int setDisplayVideoZorder(  unsigned int index, unsigned int zorder, unsigned int flag);
 
 int display_meson_get_open();
 int display_meson_set_open();

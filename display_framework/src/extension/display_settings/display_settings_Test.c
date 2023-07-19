@@ -37,7 +37,7 @@ int main()
     select_len = scanf("%d",&select_s);
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->event test 3->hdr policy 4->av mute 5->HDMI HDCP enable 6-><colorSpace, colorDepth>"
-        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable\n");
+        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -146,7 +146,12 @@ int main()
                 } else {
                     printf("\n scanf fail\n");
                 }
-        }
+    } else if (set == 11 && len == 1) {
+             if (0 == setDisplayAutoMode(MESON_CONNECTOR_HDMIA))
+                printf("Successfully set the optimal resolution!\n");
+        } else {
+            printf("scanf fail\n");
+         }
     }
     else if(select_s == 1 && select_len == 1) {
         printf("get:0->hdrPolicy 1->modeinfo 2->HDCP version 3->HDMI connected 4->color depth 5->color space"
@@ -203,7 +208,7 @@ int main()
         } else if (get == 8 && len == 1) {
             DisplayMode* modes = NULL;
             int count = 0;
-            if (0 == getDisplayModesList( &modes, &count )) {
+            if (0 == getDisplayModesList( &modes, &count,MESON_CONNECTOR_HDMIA )) {
                 printf("\n mode count:%d\n",count);
                 int i = 0;
                 for (int i=0; i<count; i++) {
@@ -216,7 +221,7 @@ int main()
             }
         } else if (get == 9 && len == 1) {
             DisplayMode mode;
-            if (0 == getDisplayPreferMode(&mode)) {
+            if (0 == getDisplayPreferMode(&mode,MESON_CONNECTOR_HDMIA)) {
                 printf(" (%s %d %d %d)\n", mode.name, mode.w, mode.h, mode.interlace);
             } else {
                  printf("\n %s fail\n",__FUNCTION__);

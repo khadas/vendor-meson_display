@@ -105,8 +105,8 @@ typedef void (*mesonDisplayEventCallback)(ENUM_MESONDISPLAY_EVENT enEvent, void 
 bool registerMesonDisplayEventCallback(mesonDisplayEventCallback cb);
 void startMesonDisplayUeventMonitor();
 void stopMesonDisplayUeventMonitor();
-int getDisplayModesList(DisplayMode** modeInfo, int* modeCount );
-int getDisplayPreferMode( DisplayMode* modeInfo);
+int getDisplayModesList(DisplayMode** modeInfo, int* modeCount ,MESON_CONNECTOR_TYPE connType);
+int getDisplayPreferMode( DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType);
 int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_MESON_COLOR_SPACE colorSpace, MESON_CONNECTOR_TYPE connType);
 int setDisplayHDCPContentType(ENUM_MESON_HDCP_Content_Type HDCPType, MESON_CONNECTOR_TYPE connType);
 ENUM_MESON_Content_Type getDisplayContentType(MESON_CONNECTOR_TYPE connType);
@@ -117,6 +117,7 @@ int getDisplayActive(MESON_CONNECTOR_TYPE connType );
 int setDisplayVrrEnabled(int VrrEnable, MESON_CONNECTOR_TYPE connType);
 int getDisplayVrrEnabled(MESON_CONNECTOR_TYPE connType );
 ENUM_MESON_HDR_MODE getDisplayHdrStatus(MESON_CONNECTOR_TYPE connType );
+int setDisplayAutoMode(MESON_CONNECTOR_TYPE connType);
 
 int display_meson_get_open();
 int display_meson_set_open();

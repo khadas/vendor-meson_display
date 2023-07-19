@@ -281,18 +281,18 @@ out:
     return  ret;
 }
 
-int getDisplayModesList(DisplayMode** modeInfo, int* modeCount ) {
+int getDisplayModesList(DisplayMode** modeInfo, int* modeCount,MESON_CONNECTOR_TYPE connType) {
     int fd = 0;
     int ret = -1;
     fd = display_meson_get_open();
-    ret = meson_drm_getsupportedModesList(fd, modeInfo, modeCount);
+    ret = meson_drm_getsupportedModesList(fd, modeInfo, modeCount,connType);
     display_meson_close(fd);
     return ret;
 }
 
-int getDisplayPreferMode( DisplayMode* modeInfo) {
+int getDisplayPreferMode( DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
-    ret = meson_drm_getPreferredMode(modeInfo);
+    ret = meson_drm_getPreferredMode(modeInfo,connType);
     return ret;
 }
 
@@ -515,6 +515,75 @@ ENUM_MESON_HDR_MODE getDisplayHdrStatus(MESON_CONNECTOR_TYPE connType ) {
     hdrMode = meson_drm_getHdrStatus(fd, connType);
     display_meson_close(fd);
     return hdrMode;
+}
+
+int setDisplayAutoMode(MESON_CONNECTOR_TYPE connType) {
+    int count = 0;
+    int i = 0;
+    int miBest= -1;
+    int area, largestArea = 0;
+    int refresh = 0;
+    int ret = -1;
+    int maxArea = 0;
+    DisplayMode* modes = NULL;
+    drmModeAtomicReq *req = NULL;
+    int fd  = 0;
+    fd = display_meson_set_open();
+    req = drmModeAtomicAlloc();
+    ret = meson_drm_getsupportedModesList(fd, &modes, &count ,connType);
+    if (ret) {
+        ERROR("getsupportedModesList failed : %d-%s", ret, strerror(errno));
+        goto out;
+    }
+    const char *env= getenv("MESON_DISPLAY_MAX_MODE");
+    if ( env )
+    {
+       int w= 0, h= 0;
+       if ( sscanf( env, "%dx%d", &w, &h ) == 2 )
+       {
+          DEBUG("max mode: %dx%d", w, h);
+          maxArea= w*h;
+       }
+    }
+    for (i = 0; i < count; i++)
+    {
+        area= modes[i].w * modes[i].h;
+        if ( (area > largestArea) && ((maxArea == 0) || (area <= maxArea)))
+        {
+            largestArea= area;
+            miBest= i;
+            refresh= modes[i].vrefresh;
+        }
+        else if ( area == largestArea )
+        {
+            if ( modes[i].vrefresh > refresh )
+            {
+                miBest= i;
+                refresh= modes[i].vrefresh;
+             }
+        }
+    }
+    DEBUG("\n %d %d %d %d \n", modes[miBest].interlace, modes[miBest].w, modes[miBest].h,modes[miBest].vrefresh);
+    ret = meson_drm_changeMode(fd, req, &modes[miBest], connType);
+    if (ret) {
+        ERROR("changeModeFail\n");
+        goto out;
+    }
+    ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+    if (ret) {
+        ERROR("auto mode failed : %d-%s", ret, strerror(errno));
+        goto out;
+    }
+out:
+    if (req) {
+        drmModeAtomicFree(req);
+        req = NULL;
+    }
+    if (modes) {
+        free(modes);
+    }
+    display_meson_close(fd);
+    return ret;
 }
 
 

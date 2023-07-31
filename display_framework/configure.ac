@@ -9,6 +9,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_SUBST(WARN_CFLAGS)
 AC_CONFIG_FILES([
   Makefile
+  src/extension/FBsurface/Makefile
   src/extension/display_settings/Makefile
   src/ipc/Makefile
   src/extension/weston-6.0/Makefile

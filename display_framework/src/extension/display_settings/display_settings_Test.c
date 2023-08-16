@@ -37,7 +37,7 @@ int main()
     select_len = scanf("%d",&select_s);
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->event test 3->hdr policy 4->av mute 5->HDMI HDCP enable 6-><colorSpace, colorDepth>"
-        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode\n");
+        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode 12->dummy mode\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -147,11 +147,20 @@ int main()
                     printf("\n scanf fail\n");
                 }
     } else if (set == 11 && len == 1) {
-             if (0 == setDisplayAutoMode(MESON_CONNECTOR_HDMIA))
+             if (0 == setDisplayAutoMode(MESON_CONNECTOR_HDMIA)) {
                 printf("Successfully set the optimal resolution!\n");
         } else {
             printf("scanf fail\n");
-         }
+        }
+    } else if (set == 12 && len == 1) {
+            printf("please input dummy modeInfo:interlace, w, h, vrefresh\n");
+            scanf("%d %d %d %d", &modeInfo->interlace, &modeInfo->w, &modeInfo->h,&modeInfo->vrefresh);
+            if (setDisplayMode(modeInfo, MESON_CONNECTOR_DUMMY) == 0) {
+                printf("\n mode：%d %d %d %d\n",modeInfo->interlace,modeInfo->w, modeInfo->h, modeInfo->vrefresh);
+            }else{
+                printf("setModeFail\n");
+            }
+        }
     }
     else if(select_s == 1 && select_len == 1) {
         printf("get:0->hdrPolicy 1->modeinfo 2->HDCP version 3->HDMI connected 4->color depth 5->color space"

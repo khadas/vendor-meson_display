@@ -477,6 +477,7 @@ int getDisplayAVMute(MESON_CONNECTOR_TYPE connType ) {
 int setDisplayMode(DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     int res = -1;
     int ret = -1;
+    int resNum = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
     if (modeInfo == NULL) {
@@ -492,7 +493,18 @@ int setDisplayMode(DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     res = meson_drm_changeMode(fd, req, modeInfo, connType);
     if (res == -1) {
         ERROR("changeModeFail\n");
-        goto out;
+        if (connType == MESON_CONNECTOR_DUMMY) {
+            ERROR("No dummy connector ,set hdmi dummy_l mode\n");
+            modeInfo->interlace = 0;
+            modeInfo->w  = 720;
+            modeInfo->h = 480;
+            modeInfo->vrefresh = 50;
+            resNum = meson_drm_changeMode(fd, req, modeInfo, MESON_CONNECTOR_HDMIA);
+            if (resNum == -1) {
+                ERROR("meson_drm_changeMode Fail");
+                goto out;
+           }
+       }
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {

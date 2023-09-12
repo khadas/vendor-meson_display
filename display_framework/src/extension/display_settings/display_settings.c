@@ -31,15 +31,15 @@ int display_meson_get_open() {
     }
     fd = open(card, O_RDONLY|O_CLOEXEC);
     if (fd < 0)
-        ERROR("meson_open_drm drm card:%s open fail",card);
+        ERROR("%s %d meson_open_drm drm card:%s open fail", __FUNCTION__,__LINE__,card);
     else
         drmDropMaster(fd);
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
     if (ret < 0)
-        INFO("Unable to set DRM atomic capability");
+        ERROR("%s %d Unable to set DRM atomic capability", __FUNCTION__,__LINE__);
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
     if (ret < 0)
-        INFO("Unable to set UNIVERSAL_PLANES\n");
+        ERROR("%s %d Unable to set UNIVERSAL_PLANES\n", __FUNCTION__,__LINE__);
     return fd;
 }
 
@@ -48,11 +48,11 @@ int display_meson_set_open() {
     int ret = -1;
     fd = open(DEFAULT_CARD, O_RDWR|O_CLOEXEC);
     if (fd < 0) {
-        ERROR("failed to open device %s", strerror(errno));
+        ERROR("%s %d failed to open device %s",  __FUNCTION__,__LINE__,strerror(errno));
     }
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
     if (ret < 0) {
-        INFO("no atomic modesetting support");
+        ERROR("%s %d no atomic modesetting support", __FUNCTION__,__LINE__);
     }
     return fd;
 }
@@ -79,6 +79,20 @@ int setDisplayHDCPEnable(bool enable, MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    char* str = NULL;
+    switch (enable)
+    {
+        case 2:
+            str = "Enabled";
+            break;
+        case 1:
+            str = "Desired";
+            break;
+        default :
+            str = "Undesired";
+            break;
+    }
+    DEBUG("%s %d set hdcp enable %s",__FUNCTION__,__LINE__,str);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
@@ -87,12 +101,12 @@ int setDisplayHDCPEnable(bool enable, MESON_CONNECTOR_TYPE connType) {
     }
     res = meson_drm_setHDCPEnable(fd, req, enable, connType);
     if (res == -1) {
-        ERROR("setHDCPEnableFail");
+        ERROR("%s %d set hdcp enable fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        DEBUG("failed to set setHDCPEnable: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__,ret, errno );
         goto out;
     }
 out:
@@ -115,6 +129,7 @@ ENUM_MESON_HDCPAUTH_STATUS getDisplayHdcpAuthStatus(MESON_CONNECTOR_TYPE connTyp
         hdcpAuthStatus = MESON_AUTH_STATUS_SUCCESS;
     }
     display_meson_close(fd);
+    DEBUG(" %s %d get hdcp auth status: %d",__FUNCTION__,__LINE__,hdcpAuthStatus);
     return hdcpAuthStatus;
 }
 
@@ -126,6 +141,14 @@ void getDisplayEDIDData(MESON_CONNECTOR_TYPE connType, int * data_Len, char **da
         return;
     }
     meson_drm_getEDIDData(fd, connType, data_Len, data);
+    DEBUG_EDID("\n");
+    DEBUG("%s %d get data_Len: %d",__FUNCTION__,__LINE__, (*data_Len));
+    for (int i = 0; i < (*data_Len); i++) {
+        if (i % 16 == 0)
+            DEBUG_EDID("\n\t\t\t");
+            if (*data)
+            DEBUG_EDID("%.2hhx", (*data)[i]);
+    }
     display_meson_close(fd);
 }
 
@@ -134,6 +157,7 @@ int setDisplayAVMute(int mute, MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG(" %s %d set mute value %d",__FUNCTION__,__LINE__,mute);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
@@ -142,12 +166,12 @@ int setDisplayAVMute(int mute, MESON_CONNECTOR_TYPE connType) {
     }
     res = meson_drm_setAVMute(fd, req, mute, connType);
     if (res == -1) {
-        ERROR("setAVMuteFail");
+        ERROR("%s %d set avmute fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set AVMute: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__,ret, errno );
         goto out;
     }
 out:
@@ -164,21 +188,41 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_MESON_COLOR_SPACE color
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    char* str = NULL;
+    switch (colorSpace)
+    {
+        case 0:
+            str = "MESON_COLOR_SPACE_RGB";
+            break;
+        case 1:
+            str = "MESON_COLOR_SPACE_YCBCR422";
+            break;
+        case 2:
+            str = "MESON_COLOR_SPACE_YCBCR444";
+            break;
+        case 3:
+            str = "MESON_COLOR_SPACE_YCBCR420";
+            break;
+        default:
+            str = "MESON_COLOR_SPACE_RESERVED";
+            break;
+    }
+    DEBUG(" %s %d set colorDepth: %d colorSpace: %s",__FUNCTION__,__LINE__,colorDepth,str);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setColorDepth(fd, req, colorDepth, connType);
     res = meson_drm_setColorSpace(fd, req, colorSpace, connType);
     if (res == -1) {
-        ERROR("set Fail");
+        ERROR("%s %d set <colorDepth,colorSpace> fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__,ret, errno );
         goto out;
     }
 out:
@@ -192,10 +236,30 @@ out:
 
 ENUM_MESON_COLOR_SPACE getDisplayColorSpace(MESON_CONNECTOR_TYPE connType) {
     int fd = 0;
+    char* str = NULL;
     fd = display_meson_get_open();
     ENUM_MESON_COLOR_SPACE colorSpace = MESON_COLOR_SPACE_RESERVED;
     colorSpace = meson_drm_getColorSpace(fd, connType);
     display_meson_close(fd);
+    switch (colorSpace)
+    {
+        case 0:
+            str = "MESON_COLOR_SPACE_RGB";
+            break;
+        case 1:
+            str = "MESON_COLOR_SPACE_YCBCR422";
+            break;
+        case 2:
+            str = "MESON_COLOR_SPACE_YCBCR444";
+            break;
+        case 3:
+            str = "MESON_COLOR_SPACE_YCBCR420";
+            break;
+        default:
+            str = "MESON_COLOR_SPACE_RESERVED";
+            break;
+    }
+    DEBUG("%s %d get colorSpace: %s",__FUNCTION__,__LINE__,str);
     return colorSpace;
 }
 
@@ -205,24 +269,53 @@ uint32_t getDisplayColorDepth(MESON_CONNECTOR_TYPE connType) {
     int value = 0;
     value = meson_drm_getColorDepth(fd, connType);
     display_meson_close(fd);
+    DEBUG("%s %d get ColorDepth: %d",__FUNCTION__,__LINE__,value);
     return value;
 }
 
 ENUM_MESON_CONN_CONNECTION getDisplayConnectionStatus(MESON_CONNECTOR_TYPE connType) {
     int fd = 0;
+    char* str = NULL;
     fd = display_meson_get_open();
     ENUM_MESON_CONN_CONNECTION ConnStatus = MESON_UNKNOWNCONNECTION;
     ConnStatus = meson_drm_getConnectionStatus(fd, connType);
     display_meson_close(fd);
+    switch (ConnStatus)
+    {
+        case 0:
+            str = "MESON_DISCONNECTED";
+            break;
+        case 1:
+            str = "MESON_CONNECTED";
+            break;
+        default:
+            str = "MESON_UNKNOWNCONNECTION";
+            break;
+    }
+    DEBUG("%s %d get connection status: %s",__FUNCTION__,__LINE__,str);
     return ConnStatus;
 }
 
 ENUM_MESON_HDCP_VERSION getDisplayHdcpVersion(MESON_CONNECTOR_TYPE connType ) {
     int fd = 0;
+    char* str = NULL;
     fd = display_meson_get_open();
     ENUM_MESON_HDCP_VERSION hdcpVersion = MESON_HDCP_RESERVED;
     hdcpVersion = meson_drm_getHdcpVersion(fd, connType);
     display_meson_close(fd);
+    switch (hdcpVersion)
+    {
+        case 0:
+            str = "MESON_HDCP_14";
+            break;
+        case 1:
+            str = "MESON_HDCP_22";
+            break;
+        default:
+            str = "MESON_HDCP_RESERVED";
+            break;
+    }
+    DEBUG("%s %d get hdcp version: %s",__FUNCTION__,__LINE__,str);
     return hdcpVersion;
 }
 
@@ -236,9 +329,10 @@ int getDisplayMode(DisplayMode* modeInfo, MESON_CONNECTOR_TYPE connType) {
     }
     ret = meson_drm_getModeInfo(fd, connType, modeInfo);
     if (ret == -1) {
-        ERROR("%s %d modeInfo get fail ",__FUNCTION__,__LINE__);
+        ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
     }
     display_meson_close(fd);
+    DEBUG("%s %d modeInfo: %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h, (modeInfo->interlace == 0 ?"p":"i"), modeInfo->vrefresh);
     return ret;
 }
 
@@ -248,6 +342,7 @@ ENUM_MESON_HDR_POLICY getDisplayHDRPolicy(MESON_CONNECTOR_TYPE connType) {
     ENUM_MESON_HDR_POLICY hdrPolicy = MESON_HDR_POLICY_FOLLOW_SINK;
     hdrPolicy = meson_drm_getHDRPolicy(fd, connType);
     display_meson_close(fd);
+    DEBUG("%s %d get hdrPolicy type %s",__FUNCTION__,__LINE__,hdrPolicy == 0? "MESON_HDR_POLICY_FOLLOW_SINK":"MESON_HDR_POLICY_FOLLOW_SOURCE");
     return hdrPolicy;
 }
 
@@ -256,20 +351,21 @@ int setDisplayHDRPolicy(ENUM_MESON_HDR_POLICY hdrPolicy, MESON_CONNECTOR_TYPE co
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set hdrPolicy type %s",__FUNCTION__,__LINE__,hdrPolicy == 0? "MESON_HDR_POLICY_FOLLOW_SINK":"MESON_HDR_POLICY_FOLLOW_SOURCE");
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
     if (res == -1) {
-        ERROR("setHDRPolicyFail");
+        ERROR("%s %d set hdr policy fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set HDR Policy: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:
@@ -286,13 +382,24 @@ int getDisplayModesList(DisplayMode** modeInfo, int* modeCount,MESON_CONNECTOR_T
     int ret = -1;
     fd = display_meson_get_open();
     ret = meson_drm_getsupportedModesList(fd, modeInfo, modeCount,connType);
+    if (ret == -1) {
+        ERROR("%s %d get supported modeslist failed: ret %d errno %d",__FUNCTION__,__LINE__, ret, errno );
+    }
     display_meson_close(fd);
+    DEBUG("%s %d mode count: %d",__FUNCTION__,__LINE__,(*modeCount));
+    for (int i=0; i < (*modeCount); i++) {
+        DEBUG_EDID(" %s %dx%d%s%dhz\n", (*modeInfo)[i].name, (*modeInfo)[i].w, (*modeInfo)[i].h, ((*modeInfo)[i].interlace == 0? "p":"i"), (*modeInfo)[i].vrefresh);
+    }
     return ret;
 }
 
 int getDisplayPreferMode( DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
     ret = meson_drm_getPreferredMode(modeInfo,connType);
+    if (ret == -1) {
+        ERROR("%s %d get preferred modes failed: ret %d errno %d",__FUNCTION__,__LINE__, ret, errno );
+    }
+    DEBUG("%s %d get preferred mode %s %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->name, modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i"),modeInfo->vrefresh);
     return ret;
 }
 
@@ -301,6 +408,7 @@ int setDisplayHDCPContentType(ENUM_MESON_HDCP_Content_Type HDCPType, MESON_CONNE
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set hdcp content type %s",__FUNCTION__,__LINE__,HDCPType == 0? "MESON_HDCP_Type0":"MESON_HDCP_Type1");
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
@@ -309,12 +417,12 @@ int setDisplayHDCPContentType(ENUM_MESON_HDCP_Content_Type HDCPType, MESON_CONNE
     }
     res = meson_drm_setHDCPContentType(fd, req, HDCPType, connType);
     if (res == -1) {
-        ERROR("setDisplayHDCPContentTypeFail");
+        ERROR("%s %d set hdcp content type fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set HDCP Content Type: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:
@@ -328,19 +436,56 @@ out:
 
 ENUM_MESON_HDCP_Content_Type getDisplayHDCPContentType(MESON_CONNECTOR_TYPE connType) {
     int fd = 0;
+    char* str = NULL;
     fd = display_meson_get_open();
     ENUM_MESON_HDCP_Content_Type ContentType = MESON_HDCP_Type_RESERVED;
     ContentType = meson_drm_getHDCPContentType(fd, connType);
     display_meson_close(fd);
+    switch (ContentType)
+    {
+        case 0:
+            str = "MESON_HDCP_Type0";
+            break;
+        case 1:
+            str = "MESON_HDCP_Type1";
+            break;
+        default:
+            str = "MESON_HDCP_Type_RESERVED";
+            break;
+    }
+    DEBUG("%s %d get hdcp content type: %s",__FUNCTION__,__LINE__,str);
     return ContentType;
 }
 
 ENUM_MESON_Content_Type getDisplayContentType( MESON_CONNECTOR_TYPE connType) {
     int fd = 0;
+    char* str = NULL;
     fd = display_meson_get_open();
     ENUM_MESON_Content_Type ContentType = MESON_Content_Type_RESERVED;
     ContentType = meson_drm_getContentType(fd, connType);
     display_meson_close(fd);
+    switch (ContentType)
+    {
+        case 0:
+            str = "MESON_Content_Type_Data";
+            break;
+        case 1:
+            str = "MESON_Content_Type_Graphics";
+            break;
+         case 2:
+            str = "MESON_Content_Type_Photo";
+            break;
+        case 3:
+            str = "MESON_Content_Type_Cinema";
+            break;
+         case 4:
+            str = "MESON_Content_Type_Game";
+            break;
+        default:
+            str = "MESON_HDCP_Type_RESERVED";
+            break;
+    }
+    DEBUG("%s %d get content type: %s",__FUNCTION__,__LINE__,str);
     return ContentType;
 }
 
@@ -349,6 +494,7 @@ int setDisplayDvEnable(int dvEnable, MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set dvEnable value %d",__FUNCTION__,__LINE__,dvEnable);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
@@ -357,12 +503,12 @@ int setDisplayDvEnable(int dvEnable, MESON_CONNECTOR_TYPE connType) {
     }
     res = meson_drm_setDvEnable(fd, req, dvEnable, connType);
     if (res == -1) {
-        ERROR("setDisplayDvEnableFail");
+        ERROR("%s %d set DvEnable fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set  Display Dv Enable : %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:
@@ -379,7 +525,11 @@ int getDisplayDvEnable(MESON_CONNECTOR_TYPE connType ) {
     int ret = -1;
     fd = display_meson_get_open();
     ret = meson_drm_getDvEnable(fd, connType );
+    if (ret == -1) {
+        ERROR("%s %d get DvEnable fail",__FUNCTION__,__LINE__);
+    }
     display_meson_close(fd);
+    DEBUG("%s %d get DvEnable value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
 }
 
@@ -388,6 +538,7 @@ int setDisplayActive(int active, MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set active value %d",__FUNCTION__,__LINE__,active);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
@@ -396,12 +547,12 @@ int setDisplayActive(int active, MESON_CONNECTOR_TYPE connType) {
     }
     res = meson_drm_setActive(fd, req, active, connType);
     if (res == -1) {
-        ERROR("setDisplayActiveFail");
+        ERROR("%s %d set active fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set Display Active : %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:
@@ -422,7 +573,11 @@ int getDisplayActive(MESON_CONNECTOR_TYPE connType ) {
        return ret;
     }
     ret = meson_drm_getActive(fd, connType );
+    if (ret == -1) {
+        ERROR("%s %d get active fail",__FUNCTION__,__LINE__);
+    }
     display_meson_close(fd);
+    DEBUG("%s %d get active value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
 }
 
@@ -431,20 +586,21 @@ int setDisplayVrrEnabled(int VrrEnable, MESON_CONNECTOR_TYPE connType) {
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set VrrEnable value %d",__FUNCTION__,__LINE__,VrrEnable);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
-        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
     res = meson_drm_setVrrEnabled(fd, req, VrrEnable, connType);
     if (res == -1) {
-        ERROR("setDisplayVrrEnabledFail");
+        ERROR("%s %d set VrrEnabled fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set Display VrrEnabled: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:
@@ -462,6 +618,7 @@ int getDisplayVrrEnabled(MESON_CONNECTOR_TYPE connType ) {
     fd = display_meson_get_open();
     ret = meson_drm_getVrrEnabled(fd, connType );
     display_meson_close(fd);
+    DEBUG("%s %d get VrrEnabled value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
 }
 
@@ -471,6 +628,7 @@ int getDisplayAVMute(MESON_CONNECTOR_TYPE connType ) {
     int ret = 0;
     ret = meson_drm_getAVMute(fd, connType );
     display_meson_close(fd);
+    DEBUG("%s %d get AVMute value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
 }
 
@@ -480,8 +638,9 @@ int setDisplayMode(DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     int resNum = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set modeInfo %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i") , modeInfo->vrefresh);
     if (modeInfo == NULL) {
-        ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         return ret;
     }
     fd = display_meson_set_open();
@@ -492,23 +651,23 @@ int setDisplayMode(DisplayMode* modeInfo,MESON_CONNECTOR_TYPE connType) {
     }
     res = meson_drm_changeMode(fd, req, modeInfo, connType);
     if (res == -1) {
-        ERROR("changeModeFail\n");
+        ERROR("%s %d connector type does not exist ",__FUNCTION__,__LINE__);
         if (connType == MESON_CONNECTOR_DUMMY) {
-            ERROR("No dummy connector ,set hdmi dummy_l mode\n");
+            ERROR("%s %d no dummy type connector ,set hdmi dummy_l mode",__FUNCTION__,__LINE__);
             modeInfo->interlace = 0;
             modeInfo->w  = 720;
             modeInfo->h = 480;
             modeInfo->vrefresh = 50;
             resNum = meson_drm_changeMode(fd, req, modeInfo, MESON_CONNECTOR_HDMIA);
             if (resNum == -1) {
-                ERROR("meson_drm_changeMode Fail");
+                ERROR("%s %d set hdmi dummy_l mode fail",__FUNCTION__,__LINE__);
                 goto out;
            }
        }
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("failed to set mode: %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:
@@ -522,10 +681,39 @@ out:
 
 ENUM_MESON_HDR_MODE getDisplayHdrStatus(MESON_CONNECTOR_TYPE connType ) {
     int fd = 0;
+    char* str = NULL;
     fd = display_meson_get_open();
     ENUM_MESON_HDR_MODE hdrMode = MESON_SDR;
     hdrMode = meson_drm_getHdrStatus(fd, connType);
     display_meson_close(fd);
+    switch (hdrMode)
+    {
+        case 0:
+            str = "MESON_HDR10PLUS";
+            break;
+        case 1:
+            str = "MESON_DOLBYVISION_STD";
+            break;
+        case 2:
+            str = "MESON_DOLBYVISION_LL";
+            break;
+        case 3:
+            str = "MESON_HDR10_ST2084";
+            break;
+        case 4:
+            str = "MESON_HDR10_TRADITIONAL";
+            break;
+        case 5:
+            str = "MESON_HDR_HLG";
+            break;
+        case 6:
+            str = "MESON_SDR";
+            break;
+        default:
+            str = "MESON_SDR";
+            break;
+    }
+    DEBUG("%s %d get hdr status: %s",__FUNCTION__,__LINE__,str);
     return hdrMode;
 }
 
@@ -539,12 +727,12 @@ int setDisplayAutoMode(MESON_CONNECTOR_TYPE connType) {
     int maxArea = 0;
     DisplayMode* modes = NULL;
     drmModeAtomicReq *req = NULL;
-    int fd  = 0;
+    int fd = 0;
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
-    ret = meson_drm_getsupportedModesList(fd, &modes, &count ,connType);
+    ret = meson_drm_getsupportedModesList(fd, &modes, &count, connType);
     if (ret) {
-        ERROR("getsupportedModesList failed : %d-%s", ret, strerror(errno));
+        ERROR("%s %d get supported modeslist fail",ret, strerror(errno));
         goto out;
     }
     const char *env= getenv("MESON_DISPLAY_MAX_MODE");
@@ -575,15 +763,15 @@ int setDisplayAutoMode(MESON_CONNECTOR_TYPE connType) {
              }
         }
     }
-    DEBUG("\n %d %d %d %d \n", modes[miBest].interlace, modes[miBest].w, modes[miBest].h,modes[miBest].vrefresh);
+    DEBUG("%s %d get largest modeInfo %dx%d%s%dhz", __FUNCTION__,__LINE__, modes[miBest].w, modes[miBest].h,(modes[miBest].interlace == 0? "p":"i"), modes[miBest].vrefresh);
     ret = meson_drm_changeMode(fd, req, &modes[miBest], connType);
     if (ret) {
-        ERROR("changeModeFail\n");
+        ERROR("%s %d change auto mode fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
-        ERROR("auto mode failed : %d-%s", ret, strerror(errno));
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
         goto out;
     }
 out:

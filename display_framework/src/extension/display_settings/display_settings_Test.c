@@ -36,7 +36,7 @@ int main()
     modeInfo= (DisplayMode*)malloc(sizeof(DisplayMode));
     select_len = scanf("%d",&select_s);
     if (select_s == 0 && select_len == 1) {
-        printf("set:0->hdmi mode 1->cvbs mode 2->event test 3->hdr policy 4->av mute 5->HDMI HDCP enable 6-><colorSpace, colorDepth>"
+        printf("set:0->hdmi mode 1->cvbs mode 2->event test 3->hdr policy 4->av mute 5->HDMI HDCP enable 6-><colorDepth, colorSpace>"
         "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode 12->dummy mode\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
@@ -165,12 +165,12 @@ int main()
     else if(select_s == 1 && select_len == 1) {
         printf("get:0->hdrPolicy 1->modeinfo 2->HDCP version 3->HDMI connected 4->color depth 5->color space"
          " 6->EDID 7->hdcp auth status 8->supportedModesList 9->prefer mode 10->HDCP Content Type 11->Content Type"
-         " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode \n");
+         " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_MESON_HDR_POLICY value = getDisplayHDRPolicy( MESON_CONNECTOR_HDMIA);
             printf("\n MESON_HDR_POLICY_FOLLOW_SINK = 0 \n"
-            "MESON_HDR_POLICY_FOLLOW_SOURCE = 1 \n value:%d\n", value);
+            "MESON_HDR_POLICY_FOLLOW_SOURCE = 1 \n  value:%d\n", value);
        } else if(get == 1 && len == 1) {
             if (getDisplayMode( modeInfo, MESON_CONNECTOR_HDMIA) == 0) {
                 printf("\n mode (%d %d %d %d)\n",modeInfo->interlace,modeInfo->w, modeInfo->h, modeInfo->vrefresh);
@@ -274,6 +274,20 @@ int main()
                      " MESON_HDR_HLG    \n"
                      " MESON_SDR    \n value:%d\n"
                      , value);
+        } else if (get == 17 && len == 1) {
+            DisplayMode* modes = NULL;
+            int count = 0;
+            if (getDisplayModesList( &modes, &count,MESON_CONNECTOR_CVBS ) == 0) {
+                printf("\n mode count:%d\n",count);
+                int i = 0;
+                for (int i=0; i< count; i++) {
+                    printf(" (%s %d %d %d %d)\n", modes[i].name, modes[i].w, modes[i].h, modes[i].interlace,modes[i].vrefresh);
+                }
+                if (modes)
+                    free(modes);
+            } else {
+                 printf("\n %s get Display cvbs ModesList fail\n",__FUNCTION__);
+            }
         }
     }
     else {

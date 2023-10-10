@@ -124,6 +124,8 @@ int display_meson_get_open();
 int display_meson_set_open();
 
 void display_meson_close(int fd);
+bool modeAttrSupportedCheck(char* modeName, ENUM_MESON_COLOR_SPACE colorSpace,
+                          uint32_t colorDepth, MESON_CONNECTOR_TYPE connType );
 
 #if defined(__cplusplus)
 }

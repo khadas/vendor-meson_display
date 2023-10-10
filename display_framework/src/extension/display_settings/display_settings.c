@@ -20,6 +20,7 @@
 #include "libdrm_meson/meson_drm_event.h"
 #define DEFAULT_CARD "/dev/dri/card0"
 #include "libdrm_meson/meson_drm_log.h"
+#include "linux/amlogic/drm/meson_drm.h"
 
 int display_meson_get_open() {
     int fd = -1;
@@ -781,6 +782,52 @@ out:
     }
     if (modes) {
         free(modes);
+    }
+    display_meson_close(fd);
+    return ret;
+}
+bool modeAttrSupportedCheck(char* modeName, ENUM_MESON_COLOR_SPACE colorSpace,
+                            uint32_t colorDepth, MESON_CONNECTOR_TYPE connType )
+{
+    bool ret = false;
+    char attr[32] = {'\0'};
+    char color[5] = {'\0'};
+    int fd = -1;
+    if (modeName == NULL || colorSpace > MESON_COLOR_SPACE_YCBCR420 ||
+        ( connType != MESON_CONNECTOR_HDMIA && connType != MESON_CONNECTOR_HDMIB) ) {
+        ERROR("%s %d invalid parameters ", __FUNCTION__,__LINE__);
+        return ret;
+    }
+    switch ( colorSpace ) {
+        case MESON_COLOR_SPACE_RGB:
+            sprintf(color, "rgb");
+            break;
+        case MESON_COLOR_SPACE_YCBCR420:
+            sprintf(color, "420");
+            break;
+        case MESON_COLOR_SPACE_YCBCR422:
+            sprintf(color, "422");
+            break;
+        case MESON_COLOR_SPACE_YCBCR444:
+            sprintf(color, "444");
+            break;
+        default:
+            sprintf(color, "fail");
+            break;
+    }
+    snprintf(attr, sizeof(attr)-1, "%s,%dbit", color, colorDepth);
+    DEBUG("%s %d mode:%s attr:%s", __FUNCTION__,__LINE__,modeName, attr);
+    struct drm_mode_test_attr args;
+    memset(&args, 0, sizeof(struct drm_mode_test_attr));
+    strcpy(args.modename, modeName);
+    strcpy(args.attr, attr);
+    fd = display_meson_get_open();
+    DEBUG("%s %d drm fd:%d, args (%s %s)",__FUNCTION__,__LINE__, fd, args.modename, args.attr);
+    if (ioctl(fd, DRM_IOCTL_MESON_TESTATTR, &args) == 0) {
+        if (args.valid == 1)
+            ret = true;
+    } else {
+        ERROR("%s %d ioctl fail ", __FUNCTION__,__LINE__);
     }
     display_meson_close(fd);
     return ret;

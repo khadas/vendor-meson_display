@@ -165,7 +165,7 @@ int main()
     else if(select_s == 1 && select_len == 1) {
         printf("get:0->hdrPolicy 1->modeinfo 2->HDCP version 3->HDMI connected 4->color depth 5->color space"
          " 6->EDID 7->hdcp auth status 8->supportedModesList 9->prefer mode 10->HDCP Content Type 11->Content Type"
-         " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList\n");
+         " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check \n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_MESON_HDR_POLICY value = getDisplayHDRPolicy( MESON_CONNECTOR_HDMIA);
@@ -288,6 +288,22 @@ int main()
             } else {
                  printf("\n %s get Display cvbs ModesList fail\n",__FUNCTION__);
             }
+        }
+        else if (get == 18 && len == 1) {
+            char mode[32] = {'\0'};
+            int color_space = 255;
+            int color_depth = 255;
+            bool ret = false;
+            printf("\n please input mode name:\n");
+            scanf("%s", mode);
+            printf("\n please input color space:\n");
+            scanf("%d", &color_space);
+            printf("\n please input color depth:\n");
+            scanf("%d", &color_depth);
+            ret = modeAttrSupportedCheck(mode, (ENUM_MESON_COLOR_SPACE)color_space,
+            color_depth, MESON_CONNECTOR_HDMIA );
+            printf("\n mode:%s color attr %d, depth %dbit, SupportedCheck:%d\n",
+                mode, color_space, color_depth, ret);
         }
     }
     else {

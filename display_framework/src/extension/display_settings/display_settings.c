@@ -930,4 +930,56 @@ out:
     return  ret;
 }
 
+int setDisplayModeAttr(DisplayModeInfo* modeInfo,uint32_t colorDepth,
+                     ENUM_DISPLAY_COLOR_SPACE colorSpace,DISPLAY_CONNECTOR_TYPE connType) {
+    int SupportedCheck = -1;
+    int changeModeNum = -1;
+    int ColorDepthNum = -1;
+    int ColorSpaceNum = -1;
+    int ret = -1;
+    int fd = 0;
+    drmModeAtomicReq *req = NULL;
+    if (modeInfo == NULL || modeInfo->name == NULL) {
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    DEBUG("%s %d modeName: %s colorSpace: %d,colorDepth: %d,connType: %d",__FUNCTION__,__LINE__,
+                   modeInfo->name, colorSpace,colorDepth,connType);
+    SupportedCheck = modeAttrSupportedCheck(modeInfo->name, colorSpace,colorDepth, connType );
+    if (SupportedCheck == 0) {
+        ERROR(" %s %d Mode Attr SupportedCheck Fail",__FUNCTION__,__LINE__);
+        return ret;
+    } else {
+        DEBUG("%s %d Mode Attr SupportedCheck Success",__FUNCTION__,__LINE__);
+    }
+    fd = display_meson_set_open();
+    req = drmModeAtomicAlloc();
+    if (req == NULL) {
+        DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    DEBUG("%s %d modeInfo %dx%d%s%dhz,colorSpace: %d,colorDepth: %d,connType: %d",__FUNCTION__,__LINE__,
+            modeInfo->w,modeInfo->h,(modeInfo->interlace == 0? "p":"i"),modeInfo->vrefresh,colorSpace,
+                   colorDepth,connType);
+    changeModeNum = meson_drm_changeMode(fd, req, modeInfo, connType);
+    ColorDepthNum = meson_drm_setColorDepth(fd, req, colorDepth, connType);
+    ColorSpaceNum = meson_drm_setColorSpace(fd, req, colorSpace, connType);
+    if (changeModeNum == -1 || ColorDepthNum == -1 || ColorSpaceNum == -1) {
+        ERROR("%s %d fail parameter return",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+    if (ret) {
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
+        goto out;
+    }
+
+out:
+    if (req) {
+        drmModeAtomicFree(req);
+        req = NULL;
+    }
+    display_meson_close(fd);
+    return  ret;
+}
 

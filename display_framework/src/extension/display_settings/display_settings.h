@@ -136,6 +136,8 @@ int setDisplayAutoMode(DISPLAY_CONNECTOR_TYPE connType);
 int setDisplayVideoZorder(  unsigned int index, unsigned int zorder, unsigned int flag);
 ENUM_DISPLAY_ASPECT_RATIO getDisplayAspectRatioValue(DISPLAY_CONNECTOR_TYPE connType );
 int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO, DISPLAY_CONNECTOR_TYPE connType);
+int setDisplayModeAttr(DisplayModeInfo* modeInfo,uint32_t colorDepth,
+                     ENUM_DISPLAY_COLOR_SPACE colorSpace,DISPLAY_CONNECTOR_TYPE connType);
 
 int display_meson_get_open();
 int display_meson_set_open();

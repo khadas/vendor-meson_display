@@ -95,6 +95,9 @@ typedef struct _DisplayModeInfo {
 typedef enum _ENUM_MESON_DISPLAY_EVENT {
     MESON_DISPLAY_EVENT_CONNECTED    = 0,//!< Display connected event.\n"
     MESON_DISPLAY_EVENT_DISCONNECTED , //!< Display disconnected event.\n"
+    MESON_DISPLAY_HDCP_AUTHENTICATED,          //!< HDCP authenticate success
+    MESON_DISPLAY_HDCP_AUTHENTICATIONFAILURE,      //!< Rx Sense OFF event
+    MESON_DISPLAY_EVENT_MAX,                   //!<MAX
 }ENUM_MESON_DISPLAY_EVENT;
 
 typedef enum _ENUM_DISPLAY_HDR_POLICY {
@@ -102,7 +105,7 @@ typedef enum _ENUM_DISPLAY_HDR_POLICY {
     DISPLAY_HDR_POLICY_FOLLOW_SOURCE     //<--Adaptive  HDR-->//
 } ENUM_DISPLAY_HDR_POLICY;
 
-int setDisplayHDCPEnable(bool enable, DISPLAY_CONNECTOR_TYPE connType);
+int setDisplayHDCPEnable(int enable, DISPLAY_CONNECTOR_TYPE connType);
 void getDisplayEDIDData(DISPLAY_CONNECTOR_TYPE connType, int * data_Len, char **data );
 int getDisplayAVMute(DISPLAY_CONNECTOR_TYPE connType );
 int setDisplayAVMute(int mute, DISPLAY_CONNECTOR_TYPE connType);
@@ -142,7 +145,6 @@ int setDisplayModeAttr(DisplayModeInfo* modeInfo,uint32_t colorDepth,
 int display_meson_get_open();
 int display_meson_set_open();
 
-void display_meson_close(int fd);
 bool modeAttrSupportedCheck(char* modeName, ENUM_DISPLAY_COLOR_SPACE colorSpace,
                           uint32_t colorDepth, DISPLAY_CONNECTOR_TYPE connType );
 

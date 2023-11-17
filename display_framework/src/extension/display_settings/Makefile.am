@@ -11,13 +11,15 @@ AM_LDFLAGS = -lpthread
 endif
 
 libdisplay_settings_la_LDFLAGS = -avoid-version -ldrm -ldrm_meson
-libdisplay_settings_la_SOURCES = display_settings.h \
-                                 display_settings.c
+libdisplay_settings_la_SOURCES = ${COMPOSITOR_TYPE}/${COMPOSITOR_TYPE}_settings.c \
+                                 displayattribute/display_attribute.c \
+                                 display_settings.h
+
 libdisplay_settings_ladir = $(includedir)/display_settings
 libdisplay_settings_la_HEADERS = display_settings.h
 
 libdisplay_settings_la_LIBADD = $(LIBDRM_LIBS) $(JSONC_LIBS)
 libdisplay_settings_la_CFLAGS = $(LIBDRM_CFLAGS)
 
-display_settings_Test_SOURCES = display_settings_Test.c
+display_settings_Test_SOURCES = ${COMPOSITOR_TYPE}/${COMPOSITOR_TYPE}_settings_Test.c
 display_settings_Test_LDADD =  $(LIBDRM_LIBS) libdisplay_settings.la

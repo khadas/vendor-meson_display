@@ -20,12 +20,14 @@
 #include <unistd.h>
 #include <errno.h>
 #include <linux/string.h>
-#include "display_settings.h"
+#include "../display_settings.h"
 
 void display_event( ENUM_MESON_DISPLAY_EVENT enEvent, void *eventData/*Optional*/)
 {
-    printf("\n MESON_DISPLAY_EVENT_CONNECTED    = 0,//!< Display connected event.\n"
-               "MESON_DISPLAY_EVENT_DISCONNECTED //!< Display disconnected event.\n"
+    printf("\n MESON_DISPLAY_EVENT_CONNECTED   = 0,//!< Display connected event.\n"
+               "MESON_DISPLAY_EVENT_DISCONNECTED, //!< Display disconnected event.\n"
+               "MESON_DISPLAY_HDCP_AUTHENTICATED,//!< HDCP authenticate success.\n"
+               "MESON_DISPLAY_HDCP_AUTHENTICATIONFAILURE \n"
                "Eevent:%d\n",enEvent);
 }
 
@@ -41,185 +43,13 @@ int main()
     modeInfo= (DisplayModeInfo*)malloc(sizeof(DisplayModeInfo));
     select_len = scanf("%d",&select_s);
     if (select_s == 0 && select_len == 1) {
-        printf("set:0->hdmi mode 1->cvbs mode 2->event test 3->hdr policy 4->av mute 5->HDMI HDCP enable 6-><colorDepth, colorSpace>"
-        "7->HDCP Content Type  8->DvEnable 9->active 10->vrr Enable 11->auto mode 12->dummy mode 13->video zorder 14->aspect ratio"
-        "15->mode attr\n");
-        len = scanf("%d",&set);
-        if (set == 0 && len == 1) {
-            printf("please input modeInfo:interlace, w, h, vrefresh\n");
-            scanf("%d %d %d %d",&modeInfo->interlace,&modeInfo->w, &modeInfo->h,&modeInfo->vrefresh);
-            if (setDisplayMode(modeInfo, DISPLAY_CONNECTOR_HDMIA) == 0) {
-                printf("\n mode：%d %d %d %d\n",modeInfo->interlace,modeInfo->w, modeInfo->h, modeInfo->vrefresh);
-            }else{
-                printf("setDisplayModeFail\n");
-            }
-        } else if(set == 1 && len == 1){
-            printf("please input modeInfo:interlace, w, h, vrefresh\n");
-            scanf("%d %d %d %d",&modeInfo->interlace,&modeInfo->w, &modeInfo->h,&modeInfo->vrefresh);
-            if (setDisplayMode(modeInfo, DISPLAY_CONNECTOR_CVBS) == 0) {
-                printf("\n mode：%d %d %d %d\n",modeInfo->interlace,modeInfo->h, modeInfo->h, modeInfo->vrefresh);
-            }else{
-                printf("setDisplayModeFail\n");
-            }
-        } else if(set == 2 && len == 1) {
-            registerMesonDisplayEventCallback(display_event);
-            startMesonDisplayUeventMonitor();
-        } else if (set == 3 && len == 1) {
-            printf("0->set Always Hdr 1->set Adaptive Hdr\n");
-            int Policy = 0;
-            scanf("%d",&Policy);
-            if (Policy == 0) {
-            if (setDisplayHDRPolicy(DISPLAY_HDR_POLICY_FOLLOW_SINK, DISPLAY_CONNECTOR_HDMIA) == 0) {
-                printf("set always hdr success\n");
-                }else{
-                    printf("set always hdr fail\n");
-                }
-            } else if (Policy == 1){
-                if (setDisplayHDRPolicy(DISPLAY_HDR_POLICY_FOLLOW_SOURCE, DISPLAY_CONNECTOR_HDMIA) == 0) {
-                    printf("set adaptive hdr success\n");
-                }else{
-                    printf("set adaptive hdr fail\n");
-                }
-            }
-        } else if(set == 4 && len == 1){
-            printf("\n AVMUTE:\n");
-            int avmute = 0;
-            len = scanf("%d", &avmute);
-            if (len == 1) {
-                if (setDisplayAVMute(avmute, DISPLAY_CONNECTOR_HDMIA))
-                    printf("\n setDisplayAVMute fail:\n");
-            } else {
-                printf("\n scanf fail\n");
-            }
-        } else if (set == 5 && len == 1) {
-            printf("\n HDCP enable:\n");
-            int hdcpEnable = 0;
-            len = scanf("%d", &hdcpEnable);
-            if (len == 1) {
-                if (setDisplayHDCPEnable(hdcpEnable, DISPLAY_CONNECTOR_HDMIA))
-                    printf("\n setDisplayHDCPEnable fail:\n");
-                } else {
-                    printf("\n scanf fail\n");
-                }
-        } else if (set == 6 && len == 1) {
-                uint32_t colorSpace = 0;
-                uint32_t colorDepth = 0;
-                printf("\n Please set <colorDepth, colorSpace> property value:\n");
-                scanf("%d %d", &colorDepth,&colorSpace);
-                int ret = setDisplayColorSpacedDepth(colorDepth, colorSpace, DISPLAY_CONNECTOR_HDMIA);
-                if (ret == 0) {
-                    printf("\n set <colorDepth, colorSpace> Success!\n");
-                } else {
-                    printf("\n set value Fail!\n");
-                }
-        } else if (set == 7 && len == 1) {
-            printf("\n HDCP Content Type:\n");
-            int HDCPContentType = 0;
-            len = scanf("%d", &HDCPContentType);
-            if (len == 1) {
-                if (setDisplayHDCPContentType(HDCPContentType, DISPLAY_CONNECTOR_HDMIA))
-                    printf("\n setDisplayHDCPContentType fail:\n");
-                } else {
-                    printf("\n scanf fail\n");
-                }
-        } else if (set == 8 && len == 1) {
-            printf("\n DvEnable:\n");
-            int dvEnable = 0;
-            len = scanf("%d", &dvEnable);
-            if (len == 1) {
-                if (setDisplayDvEnable(dvEnable, DISPLAY_CONNECTOR_HDMIA))
-                    printf("\n setDisplayDvEnable fail:\n");
-                } else {
-                    printf("\n scanf fail\n");
-                }
-        } else if (set == 9 && len == 1) {
-            printf("\n Active:\n");
-            int active = 0;
-            len = scanf("%d", &active);
-            if (len == 1) {
-                if (setDisplayActive( active, DISPLAY_CONNECTOR_HDMIA))
-                    printf("\n setDisplayActive fail:\n");
-                } else {
-                    printf("\n scanf fail\n");
-                }
-        } else if (set == 10 && len == 1) {
-            printf("\n vrr Enable:\n");
-            int vrrEnable = 0;
-            len = scanf("%d", &vrrEnable);
-            if (len == 1) {
-                if (setDisplayVrrEnabled( vrrEnable, DISPLAY_CONNECTOR_HDMIA))
-                    printf("\n setDisplayVrrEnabled fail:\n");
-                } else {
-                    printf("\n scanf fail\n");
-                }
-    } else if (set == 11 && len == 1) {
-             if (0 == setDisplayAutoMode(DISPLAY_CONNECTOR_HDMIA)) {
-                printf("Successfully set the optimal resolution!\n");
-        } else {
-            printf("scanf fail\n");
-        }
-    } else if (set == 12 && len == 1) {
-            printf("please input dummy modeInfo:interlace, w, h, vrefresh\n");
-            scanf("%d %d %d %d", &modeInfo->interlace, &modeInfo->w, &modeInfo->h,&modeInfo->vrefresh);
-            if (setDisplayMode(modeInfo, DISPLAY_CONNECTOR_DUMMY) == 0) {
-                printf("\n mode：%d %d %d %d\n",modeInfo->interlace,modeInfo->w, modeInfo->h, modeInfo->vrefresh);
-            }else{
-                printf("setModeFail\n");
-            }
-    } else if (set == 13 && len == 1) {
-            printf("\n please enter the parameters in order(index zorder flag): \n");
-            //<--index：Representing video index  Index 0 corresponds to modifying video 0;Index 1 corresponds to modifying video 1 -->//
-            //<--zpos：Represents the zorder value set-->//
-            //<--flag： Make the settings effective  Set flag equal to 1 to indicate effectiveness-->//
-            int zorder = 0;
-            int index = 0;
-            int flag = 0;
-            len = scanf("%d %d %d", &index,&zorder,&flag);
-            if (len == 3) {
-                if (setDisplayVideoZorder(index, zorder, flag))
-                    printf("\n setDisplayVideoZorder fail:\n");
-                } else {
-                    printf("\n \ scanf fail\n");
-                }
-        } else if (set == 14 && len == 1 ) {
-            printf("\n aspect ratio:\n");
-            int ASPECTRATIO =-1;
-            scanf("%d",&ASPECTRATIO);
-            int value = getDisplayAspectRatioValue( DISPLAY_CONNECTOR_HDMIA );
-            if (value == 0) {
-                printf("\n current mode do not support aspect ratio change\n"); //automatic
-            } else {
-                if (ASPECTRATIO == 1 && value == 2) {
-                    if (0 == setDisplayAspectRatioValue(ASPECTRATIO, DISPLAY_CONNECTOR_HDMIA))
-                        printf("\n aspect ratio 4:3 set success\n");
-                } else if (ASPECTRATIO == 2 && value == 1) {
-                    if (0 == setDisplayAspectRatioValue(ASPECTRATIO, DISPLAY_CONNECTOR_HDMIA))
-                        printf("\n aspect ratio 16:9 set success\n");
-                } else {
-                    printf("\n aspect ratio invalid\n");
-                }
-            }
-        } else if (set == 15 && len == 1) {
-                uint32_t colorSpace = 0;
-                uint32_t colorDepth = 0;
-                printf("\n modeInfos: interlace, w, h, vrefresh colorDepth, colorSpace, modename: ");
-                scanf("%d %d %d %d %d %d %s",&modeInfo->interlace,&modeInfo->w, &modeInfo->h,&modeInfo->vrefresh,
-                                     &colorDepth,&colorSpace,modeInfo->name);
-                printf("modename:%s modeinfo: %dx%d%s%dhz %d %d",modeInfo->name,modeInfo->w, modeInfo->h,
-                        (modeInfo->interlace == 0? "p":"i") ,modeInfo->vrefresh, colorDepth, colorSpace);
-                int ret = setDisplayModeAttr(modeInfo, colorDepth, colorSpace, DISPLAY_CONNECTOR_HDMIA);
-                if (ret == 0) {
-                    printf("\n setDisplayModeAttr Success!\n");
-                } else {
-                    printf("\n setDisplayModeAttr Fail!\n");
-                }
-        }
+        printf("The current weston set API is not developed\n");
     }
     else if(select_s == 1 && select_len == 1) {
         printf("get:0->hdrPolicy 1->modeinfo 2->HDCP version 3->HDMI connected 4->color depth 5->color space"
          " 6->EDID 7->hdcp auth status 8->supportedModesList 9->prefer mode 10->HDCP Content Type 11->Content Type"
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
-         "19->current aspect ratio\n");
+         "19->current aspect ratio 20->event test 21->video zorder\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -369,6 +199,28 @@ int main()
             } else {
                 printf("\n invalid value\n");
             }
+        } else if(get == 20 && len == 1) {
+            registerMesonDisplayEventCallback(display_event);
+            startMesonDisplayUeventMonitor();
+            while (1)
+            {
+                usleep(20000);
+            }
+        } else if (get == 21 && len == 1) {
+            printf("\n please enter the parameters in order(index zorder flag): \n");
+            //<--index：Representing video index  Index 0 corresponds to modifying video 0;Index 1 corresponds to modifying video 1 -->//
+            //<--zpos：Represents the zorder value set-->//
+            //<--flag： Make the settings effective  Set flag equal to 1 to indicate effectiveness-->//
+            int zorder = 0;
+            int index = 0;
+            int flag = 0;
+            len = scanf("%d %d %d", &index,&zorder,&flag);
+            if (len == 3) {
+                if (setDisplayVideoZorder(index, zorder, flag))
+                    printf("\n setDisplayVideoZorder fail:\n");
+                } else {
+                    printf("\n \ scanf fail\n");
+                }
         }
     }
     else {

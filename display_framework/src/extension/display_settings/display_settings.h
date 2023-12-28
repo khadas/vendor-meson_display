@@ -16,6 +16,18 @@ extern "C" {
 #endif
 #define MESON_DISPLAY_MODE_LEN 32
 
+typedef enum _ENUM_DISPLAY_FORCE_MODE {
+    DISPLAY_UNKNOWN_FMT     = 0,
+    DISPLAY_BT709,
+    DISPLAY_BT2020,
+    DISPLAY_BT2020_PQ,
+    DISPLAY_BT2020_PQ_DYNAMIC,
+    DISPLAY_BT2020_HLG,
+    DISPLAY_BT2100_IPT,
+    DISPLAY_BT2020YUV_BT2020RGB_CUVA,
+    DISPLAY_BT_BYPASS
+} ENUM_DISPLAY_FORCE_MODE;
+
 typedef enum _ENUM_DISPLAY_ASPECT_RATIO {
     DISPLAY_ASPECT_RATIO_AUTOMATIC  = 0, //current mode do not support aspect ratio change
     DISPLAY_ASPECT_RATIO_4_3,
@@ -102,7 +114,8 @@ typedef enum _ENUM_MESON_DISPLAY_EVENT {
 
 typedef enum _ENUM_DISPLAY_HDR_POLICY {
     DISPLAY_HDR_POLICY_FOLLOW_SINK      = 0,  //<--Always  HDR-->//
-    DISPLAY_HDR_POLICY_FOLLOW_SOURCE     //<--Adaptive  HDR-->//
+    DISPLAY_HDR_POLICY_FOLLOW_SOURCE,     //<--Adaptive  HDR-->//
+    DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE
 } ENUM_DISPLAY_HDR_POLICY;
 
 int setDisplayHDCPEnable(int enable, DISPLAY_CONNECTOR_TYPE connType);
@@ -141,6 +154,24 @@ ENUM_DISPLAY_ASPECT_RATIO getDisplayAspectRatioValue(DISPLAY_CONNECTOR_TYPE conn
 int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO, DISPLAY_CONNECTOR_TYPE connType);
 int setDisplayModeAttr(DisplayModeInfo* modeInfo,uint32_t colorDepth,
                      ENUM_DISPLAY_COLOR_SPACE colorSpace,DISPLAY_CONNECTOR_TYPE connType);
+int setDisplayFunctionAttribute( DisplayModeInfo* modeInfo,ENUM_DISPLAY_HDR_POLICY hdrPolicy,uint32_t colorDepth,
+                        ENUM_DISPLAY_COLOR_SPACE colorSpace, int FracRate, DISPLAY_CONNECTOR_TYPE connType);
+
+int getDisplayFracRatePolicy(DISPLAY_CONNECTOR_TYPE connType );
+int setDisplayScaling(int value);
+int setDisplayEnabled(int enabled);
+int getDisplayScaling();
+int getDisplayEnabled();
+int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType);
+int getDisplaySupportedDVMode(DISPLAY_CONNECTOR_TYPE connType);
+uint32_t getDisplayHDRSupportList(DISPLAY_CONNECTOR_TYPE connType);
+uint32_t getDisplayDvCap(DISPLAY_CONNECTOR_TYPE connType);
+int getDisplaySupportAttrList(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType);
+int getDisplayDpmsStatus(DISPLAY_CONNECTOR_TYPE connType);
+float getDisplayFrameRate( DISPLAY_CONNECTOR_TYPE connType);
+int getDisplayPlaneSize( int* width, int* height );
+int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE connType );
+
 
 int display_meson_get_open();
 int display_meson_set_open();

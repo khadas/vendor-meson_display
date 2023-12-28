@@ -30,17 +30,17 @@
 
 #define CMDBUF_SIZE 512
 
-static int wst_display_setprop(char* property);
-static int wst_display_setprop(char* property) {
+static int wstDisplaySendMessage(char* property);
+static int wstDisplaySendMessage(char* property) {
     int ret = -1;
-    DEBUG("%s %d message parameters %s ", __FUNCTION__,__LINE__,property);
+    DEBUG("%s %d send message parameters %s ", __FUNCTION__,__LINE__,property);
     char* xdgRunDir = getenv("XDG_RUNTIME_DIR");
     if (!xdgRunDir)
         xdgRunDir = XDG_RUNTIME_DIR;
     if (property) {
         do {
             char cmdBuf[CMDBUF_SIZE] = {'\0'};
-            snprintf(cmdBuf, sizeof(cmdBuf)-1, "export XDG_RUNTIME_DIR=%s;westeros-gl-console set %s | grep \"Response\"",
+            snprintf(cmdBuf, sizeof(cmdBuf)-1, "export XDG_RUNTIME_DIR=%s;westeros-gl-console %s | grep \"Response\"",
                     xdgRunDir, property);
             DEBUG("%s %d Executing '%s'\n", __FUNCTION__,__LINE__,cmdBuf);
             FILE* fp = popen(cmdBuf, "r");
@@ -83,12 +83,12 @@ int setDisplayHDCPEnable(int enable, DISPLAY_CONNECTOR_TYPE connType) {
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", connId, prop_name, enable);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, enable);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
        } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
        }
     } else {
         ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
@@ -117,12 +117,12 @@ int setDisplayAVMute(int mute, DISPLAY_CONNECTOR_TYPE connType) {
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", connId, prop_name, mute);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, mute);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
         } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
         }
     } else {
         ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
@@ -173,13 +173,13 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
             goto out;
         }
         DEBUG("%s %d space_prop_name: %s depth_prop_name",__FUNCTION__,__LINE__,space_prop_name,depth_prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d -s %d:%s:%d", connId, space_prop_name, colorSpace,
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d -s %d:%s:%d", connId, space_prop_name, colorSpace,
                                        connId, depth_prop_name, colorDepth);
-        rc = wst_display_setprop(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
        } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
        }
     } else {
         ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
@@ -199,29 +199,53 @@ int setDisplayHDRPolicy(ENUM_DISPLAY_HDR_POLICY hdrPolicy, DISPLAY_CONNECTOR_TYP
     int crtcId = -1;
     int rc = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
-    char* prop_name = NULL;
-    DEBUG("%s %d westeros set hdrPolicy %s",__FUNCTION__,__LINE__,hdrPolicy == 0? "DISPLAY_HDR_POLICY_FOLLOW_SINK":"DISPLAY_HDR_POLICY_FOLLOW_SOURCE");
+    char* hdrpolicy_name = NULL;
+    char* force_output_name = NULL;
+    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
+    DEBUG("%s %d set hdr policy %d",__FUNCTION__,__LINE__,hdrPolicy);
     crtcId = meson_drm_GetCrtcId(connType);
     if (crtcId > 0) {
-        prop_name = meson_drm_GetPropName(ENUM_MESON_DRM_PROP_HDR_POLICY);
-        if (prop_name == NULL) {
+        hdrpolicy_name = meson_drm_GetPropName(ENUM_MESON_DRM_PROP_HDR_POLICY);
+        force_output_name = meson_drm_GetPropName(ENUM_MESON_DRM_PROP_TX_HDR_OFF);
+        if (hdrpolicy_name == NULL || force_output_name == NULL) {
             ERROR("%s %d meson_drm_GetPropName return NULL",__FUNCTION__,__LINE__);
             goto out;
         }
-        DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", crtcId, prop_name, hdrPolicy);
-        rc = wst_display_setprop(cmdBuf);
-        if (rc >= 0) {
-            ret = 0;
+        DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, hdrpolicy_name);
+        if (hdrPolicy == DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE) {
+            forcemode = DISPLAY_BT709;
+            snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d -s %d:%s:%d", crtcId, hdrpolicy_name,
+                              hdrPolicy,crtcId, force_output_name, forcemode);
+            DEBUG("%s %d hdrPolicy property: %d:%s:%d forcemode property: %d:%s:%d",__FUNCTION__,__LINE__,
+                   crtcId, hdrpolicy_name, hdrPolicy, crtcId, force_output_name, forcemode);
+            rc = wstDisplaySendMessage(cmdBuf);
+            if (rc >= 0) {
+                ret = 0;
+            } else {
+                ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+            }
         } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            forcemode = DISPLAY_UNKNOWN_FMT;
+            snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d -s %d:%s:%d", crtcId, hdrpolicy_name,
+                             hdrPolicy,crtcId, force_output_name,forcemode);
+            DEBUG("%s %d hdrPolicy property: %d:%s:%d forcemode property: %d:%s:%d",__FUNCTION__,__LINE__,
+                   crtcId, hdrpolicy_name, hdrPolicy, crtcId, force_output_name, forcemode);
+            rc = wstDisplaySendMessage(cmdBuf);
+            if (rc >= 0) {
+                ret = 0;
+            } else {
+                ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+            }
         }
     } else {
         ERROR("%s %d meson_drm_GetCrtcId return fail",__FUNCTION__,__LINE__);
     }
 out:
-    if (prop_name) {
-        free(prop_name);
+    if (force_output_name) {
+        free(force_output_name);
+    }
+    if (hdrpolicy_name) {
+        free(hdrpolicy_name);
     }
     return ret;
 }
@@ -242,12 +266,12 @@ int setDisplayHDCPContentType(ENUM_DISPLAY_HDCP_Content_Type HDCPType, DISPLAY_C
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", connId, prop_name, HDCPType);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, HDCPType);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
        } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
        }
     } else {
         ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
@@ -274,12 +298,12 @@ int setDisplayDvEnable(int dvEnable, DISPLAY_CONNECTOR_TYPE connType) {
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", crtcId, prop_name, dvEnable);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, dvEnable);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
        } else {
-           ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+           ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
        }
     } else {
         ERROR("%s %d meson_drm_GetCrtcId return fail",__FUNCTION__,__LINE__);
@@ -306,12 +330,12 @@ int setDisplayActive(int active, DISPLAY_CONNECTOR_TYPE connType) {
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", crtcId, prop_name, active);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, active);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
        } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
        }
     } else {
         ERROR("%s %d meson_drm_GetCrtcId return fail",__FUNCTION__,__LINE__);
@@ -338,12 +362,12 @@ int setDisplayVrrEnabled(int VrrEnable, DISPLAY_CONNECTOR_TYPE connType) {
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", crtcId, prop_name, VrrEnable);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, VrrEnable);
+        rc = wstDisplaySendMessage(cmdBuf);
         if ( rc >= 0 ) {
             ret = 0;
         } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
         }
     } else {
         ERROR("%s %d meson_drm_GetCrtcId return fail",__FUNCTION__,__LINE__);
@@ -357,15 +381,15 @@ out:
 
 int setDisplayMode(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
-    char modeSet[20] = {'\0'};
+    char modeSet[CMDBUF_SIZE] = {'\0'};
     int rc = -1;
     DEBUG("%s %d westeros set modeInfo %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i") , modeInfo->vrefresh);
-    snprintf(modeSet, sizeof(modeSet)-1, "mode %dx%d%s%d", modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i"), modeInfo->vrefresh);
-    rc = wst_display_setprop(modeSet);
+    snprintf(modeSet, sizeof(modeSet)-1, "set mode %dx%d%s%d", modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i"), modeInfo->vrefresh);
+    rc = wstDisplaySendMessage(modeSet);
     if ( rc >= 0 ) {
         ret = 0;
     } else {
-        ERROR("%s %d wst_display_setprop fail",__FUNCTION__,__LINE__);
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
         return ret;
     }
     return ret;
@@ -374,14 +398,14 @@ int setDisplayMode(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
 int setDisplayAutoMode(DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int rc = -1;
-    char modeSet[20] = {'\0'};
+    char modeSet[CMDBUF_SIZE] = {'\0'};
     DEBUG(" %s %d westeros set auto mode",__FUNCTION__,__LINE__);
-    snprintf(modeSet, sizeof(modeSet)-1, "mode %s", "auto");
-    rc = wst_display_setprop(modeSet);
+    snprintf(modeSet, sizeof(modeSet)-1, "set mode %s", "auto");
+    rc = wstDisplaySendMessage(modeSet);
     if ( rc >= 0 ) {
         ret = 0;
     } else {
-        ERROR("%s %d wst_display_setprop fail",__FUNCTION__,__LINE__);
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
         return ret;
     }
     return ret;
@@ -403,12 +427,12 @@ int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO, DISPLAY_CO
             goto out;
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
-        snprintf(cmdBuf, sizeof(cmdBuf)-1, "property -s %d:%s:%d", connId, prop_name, ASPECTRATIO);
-        rc = wst_display_setprop(cmdBuf);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, ASPECTRATIO);
+        rc = wstDisplaySendMessage(cmdBuf);
         if (rc >= 0) {
             ret = 0;
         } else {
-            ERROR("%s %d set property fail",__FUNCTION__,__LINE__);
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
         }
     } else {
         ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
@@ -419,3 +443,94 @@ out:
     }
     return ret;
 }
+
+int setDisplayScaling(int value) {
+    int ret = -1;
+    int rc = -1;
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    DEBUG("%s %d westeros set scaling value %d",__FUNCTION__,__LINE__, value);
+    snprintf(cmdBuf, sizeof(cmdBuf)-1, "set scaling %d", value);
+    rc = wstDisplaySendMessage(cmdBuf);
+    if (rc >= 0) {
+          ret = 0;
+    } else {
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+    }
+    return ret;
+}
+
+int getDisplayScaling() {
+    int ret = -1;
+    int rc = -1;
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    snprintf(cmdBuf, sizeof(cmdBuf)-1, "get scaling");
+    rc = wstDisplaySendMessage(cmdBuf);
+    if (rc >= 0) {
+          ret = 0;
+    } else {
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+    }
+    return ret;
+}
+
+int getDisplayEnabled() {
+    int ret = -1;
+    int rc = -1;
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    snprintf(cmdBuf, sizeof(cmdBuf)-1, "get display enable");
+    rc = wstDisplaySendMessage(cmdBuf);
+    if (rc >= 0) {
+          ret = 0;
+    } else {
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+    }
+    return ret;
+}
+
+int setDisplayEnabled(int enabled) {
+    int ret = -1;
+    int rc = -1;
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    DEBUG("%s %d westeros set enabled value %d",__FUNCTION__,__LINE__, enabled);
+    snprintf(cmdBuf, sizeof(cmdBuf)-1, "set display enable %d", enabled);
+    rc = wstDisplaySendMessage(cmdBuf);
+    if (rc >= 0) {
+          ret = 0;
+    } else {
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+    }
+    return ret;
+}
+
+int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
+    int ret = -1;
+    int crtcId = -1;
+    int rc = -1;
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    char* prop_name = NULL;
+    DEBUG("%s %d westeros set dv mode %d",__FUNCTION__,__LINE__,dvmode);
+    crtcId = meson_drm_GetCrtcId(connType);
+    if (crtcId > 0) {
+        prop_name = meson_drm_GetPropName(ENUM_MESON_DRM_PROP_DV_MODE);
+        if (prop_name == NULL) {
+            ERROR("%s %d meson_drm_GetPropName return NULL",__FUNCTION__,__LINE__);
+            goto out;
+        }
+        DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, dvmode);
+        rc = wstDisplaySendMessage(cmdBuf);
+        if (rc >= 0) {
+            ret = 0;
+        } else {
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+        }
+    } else {
+        ERROR("%s %d meson_drm_GetCrtcId return fail",__FUNCTION__,__LINE__);
+    }
+out:
+    if (prop_name) {
+        free(prop_name);
+    }
+    return ret;
+}
+

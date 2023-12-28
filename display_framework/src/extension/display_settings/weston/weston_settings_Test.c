@@ -49,7 +49,9 @@ int main()
         printf("get:0->hdrPolicy 1->modeinfo 2->HDCP version 3->HDMI connected 4->color depth 5->color space"
          " 6->EDID 7->hdcp auth status 8->supportedModesList 9->prefer mode 10->HDCP Content Type 11->Content Type"
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
-         "19->current aspect ratio 20->event test 21->video zorder\n");
+         "19->current aspect ratio 20->event test 21->frac rate policy 22->scaling 23->Supported dvmode"
+         " 24->hdr supportedlist 25->DvCap 26->display enabled 27->dpms status 28->mode support attrlist 29->framrate"
+         " 30->primar plane fb size 31->physical size\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -99,16 +101,15 @@ int main()
              printf("\n DISPLAY_AUTH_STATUS_FAIL      = 0 \n"
                       " DISPLAY_AUTH_STATUS_SUCCESS = 1 \n value:%d\n", value);
         } else if (get == 8 && len == 1) {
-            DisplayModeInfo* modes = NULL;
             int count = 0;
-            if (0 == getDisplayModesList( &modes, &count,DISPLAY_CONNECTOR_HDMIA )) {
+            if (0 == getDisplayModesList( &modeInfo, &count,DISPLAY_CONNECTOR_HDMIA )) {
                 printf("\n mode count:%d\n",count);
                 int i = 0;
                 for (int i=0; i<count; i++) {
-                    printf(" (%s %d %d %d %d)\n", modes[i].name, modes[i].w, modes[i].h, modes[i].interlace,modes[i].vrefresh);
+                    printf(" (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
                 }
-                if (modes)
-                    free(modes);
+                if (modeInfo)
+                    free(modeInfo);
             } else {
                  printf("\n %s fail\n",__FUNCTION__);
             }
@@ -159,16 +160,15 @@ int main()
                      " MESON_DISPLAY_SDR    \n value:%d\n"
                      , value);
         } else if (get == 17 && len == 1) {
-            DisplayModeInfo* modes = NULL;
             int count = 0;
-            if (getDisplayModesList( &modes, &count,DISPLAY_CONNECTOR_CVBS ) == 0) {
+            if (getDisplayModesList( &modeInfo, &count,DISPLAY_CONNECTOR_CVBS ) == 0) {
                 printf("\n mode count:%d\n",count);
                 int i = 0;
                 for (int i=0; i< count; i++) {
-                    printf(" (%s %d %d %d %d)\n", modes[i].name, modes[i].w, modes[i].h, modes[i].interlace,modes[i].vrefresh);
+                    printf(" (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
                 }
-                if (modes)
-                    free(modes);
+                if (modeInfo)
+                    free(modeInfo);
             } else {
                  printf("\n %s get Display cvbs ModesList fail\n",__FUNCTION__);
             }
@@ -207,20 +207,76 @@ int main()
                 usleep(20000);
             }
         } else if (get == 21 && len == 1) {
-            printf("\n please enter the parameters in order(index zorder flag): \n");
-            //<--index：Representing video index  Index 0 corresponds to modifying video 0;Index 1 corresponds to modifying video 1 -->//
-            //<--zpos：Represents the zorder value set-->//
-            //<--flag： Make the settings effective  Set flag equal to 1 to indicate effectiveness-->//
-            int zorder = 0;
-            int index = 0;
-            int flag = 0;
-            len = scanf("%d %d %d", &index,&zorder,&flag);
-            if (len == 3) {
-                if (setDisplayVideoZorder(index, zorder, flag))
-                    printf("\n setDisplayVideoZorder fail:\n");
-                } else {
-                    printf("\n \ scanf fail\n");
-                }
+            int value = getDisplayFracRatePolicy( DISPLAY_CONNECTOR_HDMIA );
+            if (value == -1) {
+                printf("\n invalid value\n");
+            } else {
+                printf("\n FracRate: %d\n",value);
+            }
+        } else if (get == 22 && len == 1) {
+            printf("The current weston set API is not developed\n");
+        } else if (get == 23 && len == 1) {
+            int value = getDisplaySupportedDVMode(DISPLAY_CONNECTOR_HDMIA);
+            printf("getDisplaySupportedDVMode %d\n",value);
+        } else if (get == 24 && len == 1) {
+            uint32_t value  = getDisplayHDRSupportList(DISPLAY_CONNECTOR_HDMIA);
+            printf("\n value %d\n",value);
+            if (value & 0x1)
+                printf("\n MESON_DRM_HDR10PLUS\n");
+            if (value & 0x2)
+                printf("\n MESON_DRM_DOLBYVISION_STD\n");
+            if (value & 0x4)
+                printf("\n MESON_DRM_DOLBYVISION_LL\n");
+            if (value & 0x8)
+                printf("\n MESON_DRM_HDR10_ST2084\n");
+            if (value & 0x10)
+                printf("\n MESON_DRM_HDR10_TRADITIONAL\n");
+            if (value & 0x20)
+                printf("\n MESON_DRM_HDR_HLG\n");
+            if (value & 0x40)
+                printf("\n MESON_DRM_SDR\n");
+       } else if (get == 25 && len == 1) {
+            int value = getDisplayDvCap( DISPLAY_CONNECTOR_HDMIA );
+            if (value == 0) {
+                printf("The Rx don't support DolbyVision\n");
+            } else {
+                printf("\n DvCap:%d\n",value);
+            }
+        } else if (get == 26 && len == 1) {
+           printf("The current weston set API is not developed\n");
+        } else if (get == 27 && len == 1) {
+            int value = getDisplayDpmsStatus( DISPLAY_CONNECTOR_HDMIA );
+            printf("\n get dpms status: %d\n",value);
+        } else if(get == 28 && len == 1) {
+            int num = getDisplaySupportAttrList( modeInfo, DISPLAY_CONNECTOR_HDMIA);
+            if (num == 0) {
+                printf("\n getDisplaySupportAttrList Success");
+            } else {
+                printf("\n getDisplaySupportAttrList Fail");
+            }
+            free(modeInfo);
+        } else if(get == 29 && len == 1) {
+            float value = getDisplayFrameRate( DISPLAY_CONNECTOR_HDMIA);
+            printf("\n get framrate %.2f",value);
+            free(modeInfo);
+        } else if(get == 30 && len == 1) {
+            int width = 0;
+            int height = 0;
+            int value = getDisplayPlaneSize( &width,&height );
+            if (value == 0 ) {
+               printf("\n get graphic plane Size width = %d, height = %d\n",width,height);
+           } else {
+               printf("\n getDisplayPlaneSize fail\n");
+           }
+        } else if(get == 31 && len == 1) {
+            int width = 0;
+            int height = 0;
+            int value  = getDisplayPhysicalSize( &width, &height, DISPLAY_CONNECTOR_HDMIA );
+            if (value == 0 ) {
+               printf("\n get physical Size width = %d, height = %d\n",width,height);
+           } else {
+               printf("\n getDisplayPhysicalSize fail\n");
+           }
         }
     }
     else {

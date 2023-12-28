@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (c) 2023 Amlogic, Inc. All rights reserved.
  * Description:
  */
@@ -26,6 +26,10 @@
 #define DEFAULT_CARD "/dev/dri/card0"
 #include "libdrm_meson/meson_drm_log.h"
 #include "linux/amlogic/drm/meson_drm.h"
+
+#define MESON_DISPLAY_DV_MODE_FLAG 0xf8
+
+static uint32_t getDisplayHDRSupportedList(uint64_t hdrlist, uint64_t dvlist);
 
 int display_meson_get_open() {
     int fd = -1;
@@ -182,12 +186,12 @@ ENUM_DISPLAY_HDCP_VERSION getDisplayHdcpVersion(DISPLAY_CONNECTOR_TYPE connType 
 
 int getDisplayMode(DisplayModeInfo* modeInfo, DISPLAY_CONNECTOR_TYPE connType) {
     int fd = 0;
-    fd = display_meson_get_open();
     int ret = -1;
     if (modeInfo == NULL) {
         ERROR("%s %d modeInfo == NULL return",__FUNCTION__,__LINE__);
         return ret;
     }
+    fd = display_meson_get_open();
     ret = meson_drm_getModeInfo(fd, connType, modeInfo);
     if (ret == -1) {
         ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
@@ -201,16 +205,37 @@ int getDisplayMode(DisplayModeInfo* modeInfo, DISPLAY_CONNECTOR_TYPE connType) {
 ENUM_DISPLAY_HDR_POLICY getDisplayHDRPolicy(DISPLAY_CONNECTOR_TYPE connType) {
     int fd = 0;
     fd = display_meson_get_open();
+    char* str = NULL;
     ENUM_DISPLAY_HDR_POLICY hdrPolicy = DISPLAY_HDR_POLICY_FOLLOW_SINK;
+    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
     hdrPolicy = meson_drm_getHDRPolicy(fd, connType);
+    forcemode = meson_drm_getHdrForceMode(fd, connType);
     meson_close_drm(fd);
-    DEBUG("%s %d get hdrPolicy type %s",__FUNCTION__,__LINE__,hdrPolicy == 0? "DISPLAY_HDR_POLICY_FOLLOW_SINK":"DISPLAY_HDR_POLICY_FOLLOW_SOURCE");
+    switch (hdrPolicy)
+    {
+        case 0:
+            str = "DISPLAY_HDR_POLICY_FOLLOW_SINK";
+            break;
+        case 1:
+            str = "DISPLAY_HDR_POLICY_FOLLOW_SOURCE";
+            break;
+        case 2:
+            str = "DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE";
+            break;
+        default:
+            break;
+    }
+    DEBUG("%s %d get hdr policy: %s,force mode: %d",__FUNCTION__,__LINE__,str,forcemode);
     return hdrPolicy;
 }
 
 int getDisplayModesList(DisplayModeInfo** modeInfo, int* modeCount,DISPLAY_CONNECTOR_TYPE connType) {
     int fd = 0;
     int ret = -1;
+    if (modeInfo == NULL || *modeInfo == NULL || modeCount == NULL) {
+        ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        return ret;
+    }
     fd = display_meson_get_open();
     ret = meson_drm_getsupportedModesList(fd, modeInfo, modeCount,connType);
     if (ret == -1) {
@@ -227,6 +252,10 @@ int getDisplayModesList(DisplayModeInfo** modeInfo, int* modeCount,DISPLAY_CONNE
 
 int getDisplayPreferMode( DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
+    if (modeInfo == NULL) {
+        ERROR("%s %d display mode info is NULL.\n",__FUNCTION__,__LINE__);
+        return ret;
+    }
     ret = meson_drm_getPreferredMode(modeInfo,connType);
     if (ret == -1) {
         ERROR("%s %d get preferred modes failed: ret %d errno %d",__FUNCTION__,__LINE__, ret, errno );
@@ -428,26 +457,6 @@ bool modeAttrSupportedCheck(char* modeName, ENUM_DISPLAY_COLOR_SPACE colorSpace,
     return ret;
 }
 
-int setDisplayVideoZorder(unsigned int index, unsigned int zorder, unsigned int flag) {
-    int ret = -1;
-    int fd = -1;
-    DEBUG("%s %d set video zorder index:%d,zorder:%d,flag:%d",__FUNCTION__,__LINE__,index,zorder,flag);
-    fd = open(DEFAULT_CARD, O_RDWR|O_CLOEXEC);
-    if (fd < 0) {
-        ERROR("%s %d failed to open device %s",  __FUNCTION__,__LINE__,strerror(errno));
-    }
-    ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
-    if (ret < 0) {
-        ERROR("%s %d no atomic modesetting support", __FUNCTION__,__LINE__);
-    }
-    ret = meson_drm_setVideoZorder( fd, index, zorder, flag);
-    if (ret) {
-        ERROR("%s %d set video zorder Fail",ret, strerror(errno));
-    }
-    meson_close_drm(fd);
-    return ret;
-}
-
 ENUM_DISPLAY_ASPECT_RATIO getDisplayAspectRatioValue(DISPLAY_CONNECTOR_TYPE connType ) {
     int fd = 0;
     char* str = NULL;
@@ -473,4 +482,211 @@ ENUM_DISPLAY_ASPECT_RATIO getDisplayAspectRatioValue(DISPLAY_CONNECTOR_TYPE conn
     return ASPECTRATIO;
 }
 
+int getDisplayFracRatePolicy(DISPLAY_CONNECTOR_TYPE connType ) {
+    int fd = 0;
+    fd = display_meson_get_open();
+    int ret = -1;
+    ret = meson_drm_getFracRatePolicy(fd, connType );
+    meson_close_drm(fd);
+    DEBUG("%s %d get frac_rate value: %d",__FUNCTION__,__LINE__,ret);
+    return ret;
+}
 
+int getDisplaySupportAttrList(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
+    char attr[32] = {'\0'};
+    char array[215][255] = {{'\0'}};
+    int  index = 0;
+    char color[5] = {'\0'};
+    int supportedcheck = -1;
+    int ret = -1;
+    int fd = 0;
+    int ColorDepth = 0;
+    drmModeAtomicReq *req = NULL;
+    if (modeInfo == NULL) {
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    fd = display_meson_get_open();
+    ret = meson_drm_getModeInfo(fd, connType, modeInfo);
+    if (ret == -1) {
+        ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    DEBUG("%s %d modeInfoName %s",__FUNCTION__,__LINE__, modeInfo->name);
+    for (int ColorSpace = 0; ColorSpace < DISPLAY_COLOR_SPACE_RESERVED; ColorSpace++) {
+        for (int colordepth = 0; colordepth < 3; colordepth++) {
+            switch ( colordepth ) {
+                case 0:
+                    ColorDepth = 8;
+                    break;
+                case 1:
+                    ColorDepth = 10;
+                    break;
+                case 2:
+                    ColorDepth = 12;
+                    break;
+                default:
+                    break;
+             }
+             supportedcheck = modeAttrSupportedCheck(modeInfo->name,ColorSpace,ColorDepth,connType );
+             if (supportedcheck == 1) {
+                 switch ( ColorSpace ) {
+                     case 0:
+                         sprintf(color, "rgb");
+                         break;
+                     case 1:
+                         sprintf(color, "422");
+                         break;
+                     case 2:
+                         sprintf(color, "444");
+                         break;
+                     case 3:
+                         sprintf(color, "420");
+                         break;
+                     default:
+                         break;
+             }
+             snprintf(attr, sizeof(attr)-1, "%s,%dbit", color, ColorDepth);
+             strcpy(array[index++], attr);
+             ret = 0;
+            }
+        }
+    }
+    DEBUG("%s %d attr list count: %d",__FUNCTION__,__LINE__,index);
+    for (int i = 0; i < index; i++) {
+        DEBUG_EDID("%s\n",array[i]);
+    }
+    meson_close_drm(fd);
+    return ret;
+}
+
+int getDisplaySupportedDVMode( DISPLAY_CONNECTOR_TYPE connType ) {
+    int fd = 0;
+    fd = display_meson_get_open();
+    int value = meson_drm_getDvCap(fd, connType );
+    meson_close_drm(fd);
+    DEBUG("%s %d supported dvmode, dv_cap: %d, supported_dv_mode: %d\n",__FUNCTION__,__LINE__,
+                                 value, value & MESON_DISPLAY_DV_MODE_FLAG);
+    return value & MESON_DISPLAY_DV_MODE_FLAG;
+}
+
+static uint32_t getDisplayHDRSupportedList(uint64_t hdrlist, uint64_t dvlist) {
+    uint32_t ret = 0;
+    DEBUG("%s %d hdrlist:%llu, dvlist:%llu",__FUNCTION__,__LINE__, hdrlist, dvlist);
+    if (!!(hdrlist & 0x1))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_HDR10PLUS);
+
+    if (!!(dvlist & 0x1A))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_DolbyVision_STD);
+
+    if (!!(dvlist & 0xE0))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_DolbyVision_Lowlatency);
+
+    if (!!(hdrlist & 0x8))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_HDR10_ST2084);
+
+    if (!!(hdrlist & 0x4))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_HDR10_TRADITIONAL);
+
+    if (!!(hdrlist & 0x10))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_HDR_HLG);
+
+    if (!!(hdrlist & 0x2))
+        ret = ret | (0x1 << (int)MESON_DISPLAY_SDR);
+
+    return ret;
+}
+
+uint32_t getDisplayHDRSupportList(DISPLAY_CONNECTOR_TYPE connType) {
+    int fd = 0;
+    uint32_t hdrcap = 0;
+    uint32_t dvcap = 0;
+    uint32_t value_2 = 0;
+    fd = display_meson_get_open();
+    hdrcap = meson_drm_getHdrCap( fd, connType );
+    dvcap = meson_drm_getDvCap( fd, connType );
+    value_2 = getDisplayHDRSupportedList(hdrcap, dvcap);
+    DEBUG("%s %d meson_drm_getHDRSupportedList return %d",__FUNCTION__,__LINE__,value_2);
+    meson_close_drm(fd);
+    return value_2;
+}
+
+uint32_t getDisplayDvCap(DISPLAY_CONNECTOR_TYPE connType) {
+    int fd = 0;
+    uint32_t value = 0;
+    fd = display_meson_get_open();
+    value = meson_drm_getDvCap(fd, connType );
+    meson_close_drm(fd);
+    return value;
+}
+
+int getDisplayDpmsStatus(DISPLAY_CONNECTOR_TYPE connType) {
+    int fd = 0;
+    fd = display_meson_get_open();
+    int value = 0;
+    value = meson_drm_getDpmsStatus(fd, connType);
+    meson_close_drm(fd);
+    DEBUG("%s %d get dpms status %d",__FUNCTION__,__LINE__,value);
+    return value;
+}
+
+float getDisplayFrameRate(DISPLAY_CONNECTOR_TYPE connType) {
+    int ret = -1;
+    int fd = 0;
+    float refresh = 0.00;
+    drmModeAtomicReq *req = NULL;
+    DisplayModeInfo* modeInfo = NULL;
+    modeInfo= (DisplayModeInfo*)malloc(sizeof(DisplayModeInfo));
+    fd = display_meson_get_open();
+    ret = meson_drm_getModeInfo(fd, connType, modeInfo);
+    if (ret == -1) {
+        ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
+    }
+    DEBUG("%s %d modeInfoName %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h,
+                          (modeInfo->interlace == 0 ?"p":"i"), modeInfo->vrefresh);
+    if ( ( modeInfo->vrefresh == 60 || modeInfo->vrefresh == 30 || modeInfo->vrefresh == 24
+               || modeInfo->vrefresh == 120 || modeInfo->vrefresh == 240 )
+               && meson_drm_getFracRatePolicy(fd , DISPLAY_CONNECTOR_HDMIA) == 1 ) {
+             refresh = ((float)(modeInfo->vrefresh) * 1000) / 1001;
+    } else {
+        DEBUG("%s %d get framrate %.2f",__FUNCTION__,__LINE__,(float)modeInfo->vrefresh);
+        refresh = (float)modeInfo->vrefresh;
+    }
+    free(modeInfo);
+    meson_close_drm(fd);
+    return refresh;
+}
+
+int getDisplayPlaneSize( int* width, int* height ) {
+    int fd = 0;
+    int ret = -1;
+    int rc = -1;
+    if (width == NULL || height == NULL) {
+        ERROR("%s %d Error: One or both pointers are NULL.\n",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    fd = display_meson_get_open();
+    ret = meson_drm_getGraphicPlaneSize(fd, width, height);
+    if ( ret == 0) {
+        DEBUG("%s %d get graphic plane Size %d x %d",__FUNCTION__,__LINE__,*width, *height);
+    }
+    meson_close_drm(fd);
+    return ret;
+}
+
+int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE connType ) {
+    int fd = 0;
+    int ret = -1;
+    int rc = -1;
+    if (width == NULL || height == NULL) {
+        ERROR("%s %d Error: One or both pointers are NULL.\n",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    fd = display_meson_get_open();
+    ret = meson_drm_getPhysicalSize(fd, width, height, connType);
+    if ( ret == 0) {
+        DEBUG("%s %d get physical Size %d x %d",__FUNCTION__,__LINE__,*width, *height);
+    }
+    meson_close_drm(fd);
+    return ret;
+}

@@ -166,20 +166,33 @@ out:
 }
 
 int setDisplayHDRPolicy(ENUM_DISPLAY_HDR_POLICY hdrPolicy, DISPLAY_CONNECTOR_TYPE connType) {
-    int res = -1;
+    int respolicy = -1;
+    int resforce = -1;
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
-    DEBUG("%s %d set hdrPolicy type %s",__FUNCTION__,__LINE__,hdrPolicy == 0? "DISPLAY_HDR_POLICY_FOLLOW_SINK":"DISPLAY_HDR_POLICY_FOLLOW_SOURCE");
+    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
+    DEBUG("%s %d set hdr policy %d",__FUNCTION__,__LINE__,hdrPolicy);
     fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
         DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
-    res = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
-    if (res == -1) {
+    respolicy = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
+    if (respolicy == -1) {
         ERROR("%s %d set hdr policy fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    if (hdrPolicy == DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE) {
+        forcemode = DISPLAY_BT709;
+    } else {
+        forcemode = DISPLAY_UNKNOWN_FMT;
+    }
+    DEBUG("%s %d set force mode %d",__FUNCTION__,__LINE__,forcemode);
+    resforce = meson_drm_setHdrForceMode(fd, req, forcemode, connType);
+    if (resforce == -1) {
+        ERROR("%s %d set hdr force mode fail",__FUNCTION__,__LINE__);
         goto out;
     }
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
@@ -532,6 +545,133 @@ int setDisplayModeAttr(DisplayModeInfo* modeInfo,uint32_t colorDepth,
         goto out;
     }
 
+out:
+    if (req) {
+        drmModeAtomicFree(req);
+        req = NULL;
+    }
+    meson_close_drm(fd);
+    return  ret;
+}
+
+int setDisplayFunctionAttribute( DisplayModeInfo* modeInfo,ENUM_DISPLAY_HDR_POLICY hdrPolicy,uint32_t colorDepth,
+                 ENUM_DISPLAY_COLOR_SPACE colorSpace, int FracRate, DISPLAY_CONNECTOR_TYPE connType) {
+    int resmode = -1;
+    int ret = -1;
+    int respolicy = -1;
+    int resforce = -1;
+    int resNum = -1;
+    int rescolordepth = -1;
+    int rescolorspace = -1;
+    int resFracRate = -1;
+    int fd = 0;
+    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
+    drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set modeInfo: %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h,
+                               (modeInfo->interlace == 0? "p":"i"), modeInfo->vrefresh);
+    if (modeInfo == NULL) {
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    fd = display_meson_set_open();
+    req = drmModeAtomicAlloc();
+    if (req == NULL) {
+        DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    resmode = meson_drm_changeMode(fd, req, modeInfo, connType);
+    if (resmode == -1) {
+        ERROR("%s %d change mode fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    DEBUG("%s %d set hdr policy：%d colordepth: %d colorspace： %d",__FUNCTION__,__LINE__,hdrPolicy,colorDepth,colorSpace,FracRate);
+    respolicy = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
+    if (respolicy == -1) {
+        ERROR("%s %d set hdr policy fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    if (hdrPolicy == DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE) {
+        forcemode = DISPLAY_BT709;
+    } else {
+        forcemode = DISPLAY_UNKNOWN_FMT;
+    }
+    DEBUG("%s %d set force mode： %d",__FUNCTION__,__LINE__,forcemode);
+    resforce = meson_drm_setHdrForceMode(fd, req, forcemode, connType);
+    if (resforce == -1) {
+        ERROR("%s %d set hdr force mode fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    rescolordepth = meson_drm_setColorDepth(fd, req, colorDepth, connType);
+    if (rescolordepth == -1) {
+        ERROR("%s %d set color depth fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    rescolorspace = meson_drm_setColorSpace(fd, req, colorSpace, connType);
+    if (rescolorspace == -1) {
+        ERROR("%s %d set color space fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    resFracRate = meson_drm_setFracRatePolicy(fd, req, FracRate, connType);
+    if (resFracRate == -1) {
+        ERROR("%s %d set frac_rate fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+    if (ret) {
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
+        goto out;
+    }
+out:
+    if (req) {
+        drmModeAtomicFree(req);
+        req = NULL;
+    }
+    meson_close_drm(fd);
+    return  ret;
+}
+
+int setDisplayVideoZorder(unsigned int index, unsigned int zorder, unsigned int flag) {
+    int ret = -1;
+    int fd = -1;
+    DEBUG("%s %d set video zorder index:%d,zorder:%d,flag:%d",__FUNCTION__,__LINE__,index,zorder,flag);
+    fd = open(DEFAULT_CARD, O_RDWR|O_CLOEXEC);
+    if (fd < 0) {
+        ERROR("%s %d failed to open device %s",  __FUNCTION__,__LINE__,strerror(errno));
+    }
+    ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
+    if (ret < 0) {
+        ERROR("%s %d no atomic modesetting support", __FUNCTION__,__LINE__);
+    }
+    ret = meson_drm_setVideoZorder( fd, index, zorder, flag);
+    if (ret) {
+        ERROR("%s %d set video zorder Fail",ret, strerror(errno));
+    }
+    meson_close_drm(fd);
+    return ret;
+}
+
+int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
+    int res = -1;
+    int ret = -1;
+    int fd = 0;
+    drmModeAtomicReq *req = NULL;
+    DEBUG("%s %d set dvmode value %d",__FUNCTION__,__LINE__,dvmode);
+    fd = display_meson_set_open();
+    req = drmModeAtomicAlloc();
+    if (req == NULL) {
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    res = meson_drm_setDvMode(fd, req, dvmode, connType);
+    if (res == -1) {
+        ERROR("%s %d set dv mode fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+    if (ret) {
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
+        goto out;
+    }
 out:
     if (req) {
         drmModeAtomicFree(req);

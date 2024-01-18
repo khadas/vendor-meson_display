@@ -45,7 +45,7 @@ int main()
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->hdr policy 3->av mute 4->HDMI HDCP enable 5-><colorDepth, colorSpace>"
         "6->HDCP Content Type  7->DvEnable 8->active 9->vrr Enable 10->auto mode 11->dummy mode 12->aspect ratio"
-        " 13->scaling 14->display enable 15->dv mode\n");
+        " 13->scaling 14->the status of display 15->dv mode\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -196,7 +196,7 @@ int main()
                 }
             }
         } else if (set == 13 && len == 1) {
-            printf("please input value(value range: 50 - 100 (percent)): \n");
+            printf("please input value(value range: 40 - 100 (percent)): \n");
             int value = -1;
             scanf("%d", &value);
             if (setDisplayScaling(value) == 0) {
@@ -230,7 +230,7 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          "19->current aspect ratio 20->event test 21->frac rate policy 22->scaling 23->supported dvmode"
          " 24->hdr supportedlist 25->DvCap 26->display enabled 27->dpms status 28->mode support attrlist 29->framrate"
-         " 30->primar plane fb size 31->physical size 32->Timing information\n");
+         " 30->primar plane fb size 31->physical size 32->Timing information 33->is bestmode\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -343,7 +343,7 @@ int main()
         } else if (get == 17 && len == 1) {
             int count = 0;
             if (getDisplayModesList( &modeInfo, &count,DISPLAY_CONNECTOR_CVBS ) == 0) {
-                printf("\n wangchenmode count:%d\n",count);
+                printf("\n mode count:%d\n",count);
                 int i = 0;
                 for (int i=0; i< count; i++) {
                     printf(" (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
@@ -395,11 +395,13 @@ int main()
                 printf("\n FracRate: %d\n",value);
             }
         } else if (get == 22 && len == 1) {
-            printf("get display scaling\n");
-            if (getDisplayScaling() == 0) {
-                printf("\n getDisplayScaling Success\n");
-            }else{
-                printf("getDisplayScaling Fail\n");
+            // 0: scaling -1 : means 100   API return 100
+            // 0: scaling 50               API return 50
+            int value = 0;
+            if (getDisplayScaling(&value) < 0) {
+               printf("\n send message fail, cause get the scaling of graphic fail\n");
+            } else {
+               printf("\n get the scaling of graphic %d\n",value);
             }
         } else if (get == 23 && len == 1) {
             int value = getDisplaySupportedDVMode(DISPLAY_CONNECTOR_HDMIA);
@@ -429,11 +431,11 @@ int main()
                 printf("\n DvCap:%d\n",value);
             }
         } else if (get == 26 && len == 1) {
-            int value = getDisplayEnabled( );
-            if (value == 0) {
-                printf("DisplayEnabled\n");
+            int enabled = 0;
+            if (getDisplayEnabled( &enabled)< 0) {
+                printf("send message fail, cause get the status of display fail\n");
             } else {
-                printf("DisplayUnEnabled\n");
+                printf("get the status of display %d\n",enabled);
             }
         } else if (get == 27 && len == 1) {
             int value = getDisplayDpmsStatus( DISPLAY_CONNECTOR_HDMIA );
@@ -479,6 +481,13 @@ int main()
                                   hstart,vstart);
             } else {
                 printf("\n getDisplaySignalTimingInfo fail\n");
+            }
+        } else if (get == 33 && len == 1) {
+            int value = 0;
+            if (getDisplayIsBestMode(&value) < 0) {
+               printf("\n send message fail, cause get fail\n");
+            } else {
+               printf("\n get best mode status value %d \n",value);
             }
         }
     }

@@ -160,8 +160,8 @@ int setDisplayFunctionAttribute( DisplayModeInfo* modeInfo,ENUM_DISPLAY_HDR_POLI
 int getDisplayFracRatePolicy(DISPLAY_CONNECTOR_TYPE connType );
 int setDisplayScaling(int value);
 int setDisplayEnabled(int enabled);
-int getDisplayScaling();
-int getDisplayEnabled();
+int getDisplayScaling(int* value);
+int getDisplayEnabled(int* enabled);
 int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType);
 int getDisplaySupportedDVMode(DISPLAY_CONNECTOR_TYPE connType);
 uint32_t getDisplayHDRSupportList(DISPLAY_CONNECTOR_TYPE connType);
@@ -173,6 +173,7 @@ int getDisplayPlaneSize( int* width, int* height );
 int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE connType );
 int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hstart,
                                                    uint16_t* vstart, DISPLAY_CONNECTOR_TYPE connType);
+int getDisplayIsBestMode(int* value);
 
 int display_meson_get_open();
 int display_meson_set_open();

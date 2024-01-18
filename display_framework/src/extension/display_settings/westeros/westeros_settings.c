@@ -29,10 +29,15 @@
 #endif
 
 #define CMDBUF_SIZE 512
+#define OUTPUT_SIZE 64
 
-static int wstDisplaySendMessage(char* property);
-static int wstDisplaySendMessage(char* property) {
+static int wstDisplaySendMessage(char* property,char *response);
+static int wstDisplaySendMessage(char* property,char *response) {
     int ret = -1;
+    if (response == NULL) {
+        ERROR("%s %d Error: pointers are NULL.\n",__FUNCTION__,__LINE__);
+        return ret;
+    }
     DEBUG("%s %d send message parameters %s ", __FUNCTION__,__LINE__,property);
     char* xdgRunDir = getenv("XDG_RUNTIME_DIR");
     if (!xdgRunDir)
@@ -50,6 +55,7 @@ static int wstDisplaySendMessage(char* property) {
                     if (strlen(output) && strstr(output, "[0:")) {
                         ret = 0;
                         DEBUG("%s %d output:%s",__FUNCTION__,__LINE__,output);
+                        strcpy(response, output);
                     }
                 }
                 pclose(fp);
@@ -74,6 +80,7 @@ int setDisplayHDCPEnable(int enable, DISPLAY_CONNECTOR_TYPE connType) {
     int fd = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     connId = meson_drm_GetConnectorId(connType);
     DEBUG(" %s %d westeros set hdcp enable %d connId %d",__FUNCTION__,__LINE__,enable,connId);
     if (connId > 0) {
@@ -84,7 +91,7 @@ int setDisplayHDCPEnable(int enable, DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, enable);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
        } else {
@@ -107,6 +114,7 @@ int setDisplayAVMute(int mute, DISPLAY_CONNECTOR_TYPE connType) {
     int rc = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     connId = meson_drm_GetConnectorId(connType);
     DEBUG("%s %d westeros set mute value %d connId %d connType %d",__FUNCTION__,__LINE__,
                                       mute,connId,connType);
@@ -118,7 +126,7 @@ int setDisplayAVMute(int mute, DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, mute);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
         } else {
@@ -145,6 +153,7 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
     char* depth_prop_name = NULL;
     struct mesonConnector* conn = NULL;
     char* str = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     switch (colorSpace)
     {
         case 0:
@@ -175,7 +184,7 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
         DEBUG("%s %d space_prop_name: %s depth_prop_name",__FUNCTION__,__LINE__,space_prop_name,depth_prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d -s %d:%s:%d", connId, space_prop_name, colorSpace,
                                        connId, depth_prop_name, colorDepth);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
        } else {
@@ -201,6 +210,7 @@ int setDisplayHDRPolicy(ENUM_DISPLAY_HDR_POLICY hdrPolicy, DISPLAY_CONNECTOR_TYP
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* hdrpolicy_name = NULL;
     char* force_output_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
     DEBUG("%s %d set hdr policy %d",__FUNCTION__,__LINE__,hdrPolicy);
     crtcId = meson_drm_GetCrtcId(connType);
@@ -218,7 +228,7 @@ int setDisplayHDRPolicy(ENUM_DISPLAY_HDR_POLICY hdrPolicy, DISPLAY_CONNECTOR_TYP
                               hdrPolicy,crtcId, force_output_name, forcemode);
             DEBUG("%s %d hdrPolicy property: %d:%s:%d forcemode property: %d:%s:%d",__FUNCTION__,__LINE__,
                    crtcId, hdrpolicy_name, hdrPolicy, crtcId, force_output_name, forcemode);
-            rc = wstDisplaySendMessage(cmdBuf);
+            rc = wstDisplaySendMessage(cmdBuf,resp);
             if (rc >= 0) {
                 ret = 0;
             } else {
@@ -230,7 +240,7 @@ int setDisplayHDRPolicy(ENUM_DISPLAY_HDR_POLICY hdrPolicy, DISPLAY_CONNECTOR_TYP
                              hdrPolicy,crtcId, force_output_name,forcemode);
             DEBUG("%s %d hdrPolicy property: %d:%s:%d forcemode property: %d:%s:%d",__FUNCTION__,__LINE__,
                    crtcId, hdrpolicy_name, hdrPolicy, crtcId, force_output_name, forcemode);
-            rc = wstDisplaySendMessage(cmdBuf);
+            rc = wstDisplaySendMessage(cmdBuf,resp);
             if (rc >= 0) {
                 ret = 0;
             } else {
@@ -257,6 +267,7 @@ int setDisplayHDCPContentType(ENUM_DISPLAY_HDCP_Content_Type HDCPType, DISPLAY_C
     int fd = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     DEBUG(" %s %d westeros set hdcp content type %d",__FUNCTION__,__LINE__,HDCPType);
     connId = meson_drm_GetConnectorId(connType);
     if (connId > 0) {
@@ -267,7 +278,7 @@ int setDisplayHDCPContentType(ENUM_DISPLAY_HDCP_Content_Type HDCPType, DISPLAY_C
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, HDCPType);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
        } else {
@@ -289,6 +300,7 @@ int setDisplayDvEnable(int dvEnable, DISPLAY_CONNECTOR_TYPE connType) {
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     uint32_t crtcId = -1;
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     DEBUG(" %s %d westeros set DvEnable %d",__FUNCTION__,__LINE__,dvEnable);
     crtcId = meson_drm_GetCrtcId(connType);
     if (crtcId > 0) {
@@ -299,7 +311,7 @@ int setDisplayDvEnable(int dvEnable, DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, dvEnable);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
        } else {
@@ -321,6 +333,7 @@ int setDisplayActive(int active, DISPLAY_CONNECTOR_TYPE connType) {
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     uint32_t crtcId = -1;
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     DEBUG(" %s %d westeros set active %d",__FUNCTION__,__LINE__,active);
     crtcId = meson_drm_GetCrtcId(connType);
     if (crtcId > 0) {
@@ -331,7 +344,7 @@ int setDisplayActive(int active, DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, active);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
        } else {
@@ -353,6 +366,7 @@ int setDisplayVrrEnabled(int VrrEnable, DISPLAY_CONNECTOR_TYPE connType) {
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     uint32_t crtcId = -1;
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     DEBUG(" %s %d westeros set VrrEnable %d",__FUNCTION__,__LINE__,VrrEnable);
     crtcId = meson_drm_GetCrtcId(connType);
     if ( crtcId > 0 ) {
@@ -363,7 +377,7 @@ int setDisplayVrrEnabled(int VrrEnable, DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, VrrEnable);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if ( rc >= 0 ) {
             ret = 0;
         } else {
@@ -383,14 +397,18 @@ int setDisplayMode(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     char modeSet[CMDBUF_SIZE] = {'\0'};
     int rc = -1;
+    char resp[OUTPUT_SIZE] = {'\0'};
+    if (modeInfo == NULL) {
+        ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
+        return ret;
+    }
     DEBUG("%s %d westeros set modeInfo %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i") , modeInfo->vrefresh);
     snprintf(modeSet, sizeof(modeSet)-1, "set mode %dx%d%s%d", modeInfo->w, modeInfo->h, (modeInfo->interlace == 0? "p":"i"), modeInfo->vrefresh);
-    rc = wstDisplaySendMessage(modeSet);
+    rc = wstDisplaySendMessage(modeSet,resp);
     if ( rc >= 0 ) {
         ret = 0;
     } else {
         ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
-        return ret;
     }
     return ret;
 }
@@ -398,15 +416,14 @@ int setDisplayMode(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
 int setDisplayAutoMode(DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int rc = -1;
+    char resp[OUTPUT_SIZE] = {'\0'};
     char modeSet[CMDBUF_SIZE] = {'\0'};
-    DEBUG(" %s %d westeros set auto mode",__FUNCTION__,__LINE__);
     snprintf(modeSet, sizeof(modeSet)-1, "set mode %s", "auto");
-    rc = wstDisplaySendMessage(modeSet);
+    rc = wstDisplaySendMessage(modeSet,resp);
     if ( rc >= 0 ) {
         ret = 0;
     } else {
         ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
-        return ret;
     }
     return ret;
 }
@@ -417,6 +434,7 @@ int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO, DISPLAY_CO
     int rc = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
     connId = meson_drm_GetConnectorId(connType);
     DEBUG(" %s %d westeros set aspect ratio Value %d connId %d connType %d",__FUNCTION__,__LINE__,
                                                ASPECTRATIO, connId, connType);
@@ -428,7 +446,7 @@ int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO, DISPLAY_CO
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, ASPECTRATIO);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
         } else {
@@ -447,10 +465,11 @@ out:
 int setDisplayScaling(int value) {
     int ret = -1;
     int rc = -1;
+    char resp[OUTPUT_SIZE] = {'\0'};
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     DEBUG("%s %d westeros set scaling value %d",__FUNCTION__,__LINE__, value);
     snprintf(cmdBuf, sizeof(cmdBuf)-1, "set scaling %d", value);
-    rc = wstDisplaySendMessage(cmdBuf);
+    rc = wstDisplaySendMessage(cmdBuf,resp);
     if (rc >= 0) {
           ret = 0;
     } else {
@@ -459,41 +478,64 @@ int setDisplayScaling(int value) {
     return ret;
 }
 
-int getDisplayScaling() {
-    int ret = -1;
-    int rc = -1;
+int getDisplayScaling(int* value) {
+    char resp[OUTPUT_SIZE] = {'\0'};
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    int rc = -1;
+    if (value == NULL) {
+        ERROR("%s %d Error: pointers are NULL.\n",__FUNCTION__,__LINE__);
+        return rc;
+    }
     snprintf(cmdBuf, sizeof(cmdBuf)-1, "get scaling");
-    rc = wstDisplaySendMessage(cmdBuf);
+    rc = wstDisplaySendMessage(cmdBuf,resp);
     if (rc >= 0) {
-          ret = 0;
+        DEBUG("%s %d scaling output: %s",__FUNCTION__,__LINE__,resp);
+        if (sscanf(resp, "Response: [%*d:%*s %d]", value)) {
+            if (*value < 0) {
+                *value = 100;
+            }
+        }
+        DEBUG("%s %d get the scaling of graphic value %d",__FUNCTION__,__LINE__,*value);
     } else {
         ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
     }
-    return ret;
+    return rc;
 }
 
-int getDisplayEnabled() {
-    int ret = -1;
-    int rc = -1;
+int getDisplayEnabled(int* enabled) {
+    char resp[OUTPUT_SIZE] = {'\0'};
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    char *result = NULL;
+    int rc = -1;
+    if (enabled == NULL) {
+        ERROR("%s %d Error: pointers are NULL.\n",__FUNCTION__,__LINE__);
+        return rc;
+    }
     snprintf(cmdBuf, sizeof(cmdBuf)-1, "get display enable");
-    rc = wstDisplaySendMessage(cmdBuf);
+    rc = wstDisplaySendMessage(cmdBuf,resp);
     if (rc >= 0) {
-          ret = 0;
+        DEBUG("%s %d display enabled output: %s",__FUNCTION__,__LINE__,resp );
+        result = strstr(resp, "enable 1");
+        if (result != NULL) {
+            *enabled = 1;
+        } else {
+            *enabled = 0;
+        }
+        DEBUG("%s %d get the status of display %d",__FUNCTION__,__LINE__, *enabled);
     } else {
         ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
     }
-    return ret;
+    return rc;
 }
 
 int setDisplayEnabled(int enabled) {
     int ret = -1;
     int rc = -1;
+    char resp[OUTPUT_SIZE] = {'\0'};
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     DEBUG("%s %d westeros set enabled value %d",__FUNCTION__,__LINE__, enabled);
     snprintf(cmdBuf, sizeof(cmdBuf)-1, "set display enable %d", enabled);
-    rc = wstDisplaySendMessage(cmdBuf);
+    rc = wstDisplaySendMessage(cmdBuf,resp);
     if (rc >= 0) {
           ret = 0;
     } else {
@@ -506,6 +548,7 @@ int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int crtcId = -1;
     int rc = -1;
+    char resp[OUTPUT_SIZE] = {'\0'};
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
     DEBUG("%s %d westeros set dv mode %d",__FUNCTION__,__LINE__,dvmode);
@@ -518,7 +561,7 @@ int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, dvmode);
-        rc = wstDisplaySendMessage(cmdBuf);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
         if (rc >= 0) {
             ret = 0;
         } else {
@@ -532,5 +575,26 @@ out:
         free(prop_name);
     }
     return ret;
+}
+
+int getDisplayIsBestMode(int* value) {
+    char resp[OUTPUT_SIZE] = {'\0'};
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    int rc = -1;
+    if (value == NULL) {
+        ERROR("%s %d Error: pointers are NULL\n",__FUNCTION__,__LINE__);
+        return rc;
+    }
+    snprintf(cmdBuf, sizeof(cmdBuf)-1, "get bestmode");
+    rc = wstDisplaySendMessage(cmdBuf,resp);
+    if (rc >= 0) {
+        DEBUG("%s %d is best mode output: %s",__FUNCTION__,__LINE__,resp);
+        if (sscanf(resp, "Response: [%*d:%*s %d]", value)) {
+            DEBUG("%s %d get is bestmode status %d",__FUNCTION__,__LINE__,*value);
+        }
+    } else {
+        ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+    }
+    return rc;
 }
 

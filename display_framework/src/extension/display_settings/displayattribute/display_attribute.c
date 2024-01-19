@@ -690,3 +690,22 @@ int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE conn
     meson_close_drm(fd);
     return ret;
 }
+
+int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hstart,
+                                             uint16_t* vstart, DISPLAY_CONNECTOR_TYPE connType) {
+    int fd = 0;
+    int ret = -1;
+    int rc = -1;
+    if (htotal == NULL || vtotal == NULL || hstart == NULL || vstart == NULL) {
+        ERROR("%s %d Error: have pointers are NULL.\n",__FUNCTION__,__LINE__);
+        return ret;
+    }
+    fd = display_meson_get_open();
+    ret = meson_drm_getSignalTimingInfo(fd, htotal, vtotal, hstart, vstart, connType);
+    if ( ret == 0) {
+         DEBUG("%s %d signal timingInfo htotal: %d vtotal: %d hstart: %d vstart: %d",
+                       __FUNCTION__,__LINE__,*htotal, *vtotal,*hstart,*vstart);
+    }
+    meson_close_drm(fd);
+    return ret;
+}

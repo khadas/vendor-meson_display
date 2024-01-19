@@ -51,7 +51,7 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          "19->current aspect ratio 20->event test 21->frac rate policy 22->scaling 23->Supported dvmode"
          " 24->hdr supportedlist 25->DvCap 26->display enabled 27->dpms status 28->mode support attrlist 29->framrate"
-         " 30->primar plane fb size 31->physical size\n");
+         " 30->primar plane fb size 31->physical size 32->Timing information\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -277,6 +277,17 @@ int main()
            } else {
                printf("\n getDisplayPhysicalSize fail\n");
            }
+        } else if(get ==32 && len == 1) {
+           uint16_t htotal = 0;
+           uint16_t vtotal = 0;
+           uint16_t hstart = 0;
+           uint16_t vstart = 0;
+            if (getDisplaySignalTimingInfo(&htotal,&vtotal, &hstart,&vstart, DISPLAY_CONNECTOR_HDMIA) == 0) {
+                printf("htotal: %d vtotal: %d hstart: %d vstart: %d\n", htotal, vtotal,
+                                  hstart,vstart);
+            } else {
+                printf("\n getDisplaySignalTimingInfo fail\n");
+            }
         }
     }
     else {

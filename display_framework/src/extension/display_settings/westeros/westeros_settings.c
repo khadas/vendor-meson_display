@@ -147,7 +147,6 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
     int ret = -1;
     int connId = -1;
     int fd = -1;
-    int rc = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* space_prop_name = NULL;
     char* depth_prop_name = NULL;
@@ -184,12 +183,8 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
         DEBUG("%s %d space_prop_name: %s depth_prop_name",__FUNCTION__,__LINE__,space_prop_name,depth_prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d -s %d:%s:%d", connId, space_prop_name, colorSpace,
                                        connId, depth_prop_name, colorDepth);
-        rc = wstDisplaySendMessage(cmdBuf,resp);
-        if (rc >= 0) {
-            ret = 0;
-       } else {
-            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
-       }
+        wstDisplaySendMessage(cmdBuf,resp);
+        ret = 0;
     } else {
         ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
     }
@@ -547,7 +542,6 @@ int setDisplayEnabled(int enabled) {
 int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int crtcId = -1;
-    int rc = -1;
     char resp[OUTPUT_SIZE] = {'\0'};
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
@@ -561,12 +555,8 @@ int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
         }
         DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
         snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", crtcId, prop_name, dvmode);
-        rc = wstDisplaySendMessage(cmdBuf,resp);
-        if (rc >= 0) {
-            ret = 0;
-        } else {
-            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
-        }
+        wstDisplaySendMessage(cmdBuf,resp);
+        ret = 0;
     } else {
         ERROR("%s %d meson_drm_GetCrtcId return fail",__FUNCTION__,__LINE__);
     }

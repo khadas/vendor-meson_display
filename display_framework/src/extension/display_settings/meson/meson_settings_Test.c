@@ -45,7 +45,7 @@ int main()
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->hdr policy 3->av mute 4->HDMI HDCP enable 5-><colorDepth, colorSpace>"
         "6->HDCP Content Type  7->DvEnable 8->active 9->vrr Enable 10->auto mode 11->dummy mode 12->aspect ratio"
-         "13->mode attr 14->FunctionAttribute 15->video zorder\n");
+         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -236,6 +236,15 @@ int main()
                 } else {
                     printf("\n \ scanf fail\n");
                 }
+        } else if (set == 16 && len == 1) {
+            printf("dvmode: \n");
+            int dvmode = -1;
+            scanf("%d", &dvmode);
+            if (setDisplayDVMode(dvmode,DISPLAY_CONNECTOR_HDMIA) == 0) {
+                printf("\n setDisplayDVMode Success\n");
+            }else{
+                printf("setDisplayDVMode Fail\n");
+            }
         }
     }
     else if(select_s == 1 && select_len == 1) {

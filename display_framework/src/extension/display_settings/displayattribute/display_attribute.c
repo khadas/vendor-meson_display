@@ -66,13 +66,10 @@ void stopMesonDisplayUeventMonitor() {
 }
 
 ENUM_DISPLAY_HDCPAUTH_STATUS getDisplayHdcpAuthStatus(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
-    fd = display_meson_get_open();
     ENUM_DISPLAY_HDCPAUTH_STATUS hdcpAuthStatus = DISPLAY_AUTH_STATUS_FAIL;
-    int ret = meson_drm_getHdcpAuthStatus(fd, connType );
-    if (ret == 0) {
-        hdcpAuthStatus = DISPLAY_AUTH_STATUS_FAIL;
-    } else if(ret == 1) {
+    int fd = display_meson_get_open();
+    ENUM_MESON_HDCPAUTH_STATUS mesonAuthStatus = meson_drm_getHdcpAuthStatus(fd, connType );
+    if (mesonAuthStatus == MESON_AUTH_STATUS_SUCCESS) {
         hdcpAuthStatus = DISPLAY_AUTH_STATUS_SUCCESS;
     }
     meson_close_drm(fd);
@@ -102,30 +99,34 @@ void getDisplayEDIDData(DISPLAY_CONNECTOR_TYPE connType, int * data_Len, char **
 ENUM_DISPLAY_COLOR_SPACE getDisplayColorSpace(DISPLAY_CONNECTOR_TYPE connType) {
     int fd = 0;
     char* str = NULL;
+    ENUM_DISPLAY_COLOR_SPACE displayColorSpace = DISPLAY_COLOR_SPACE_RESERVED;
     fd = display_meson_get_open();
-    ENUM_DISPLAY_COLOR_SPACE colorSpace = DISPLAY_COLOR_SPACE_RESERVED;
-    colorSpace = meson_drm_getColorSpace(fd, connType);
+    ENUM_MESON_COLOR_SPACE colorSpace = meson_drm_getColorSpace(fd, connType);
     meson_close_drm(fd);
-    switch (colorSpace)
-    {
-        case 0:
+    switch (colorSpace) {
+        case MESON_COLOR_SPACE_RGB:
             str = "DISPLAY_COLOR_SPACE_RGB";
+            displayColorSpace = DISPLAY_COLOR_SPACE_RGB;
             break;
-        case 1:
+        case MESON_COLOR_SPACE_YCBCR422:
             str = "DISPLAY_COLOR_SPACE_YCBCR422";
+            displayColorSpace = DISPLAY_COLOR_SPACE_YCBCR422;
             break;
-        case 2:
+        case MESON_COLOR_SPACE_YCBCR444:
             str = "DISPLAY_COLOR_SPACE_YCBCR444";
+            displayColorSpace = DISPLAY_COLOR_SPACE_YCBCR444;
             break;
-        case 3:
+        case MESON_COLOR_SPACE_YCBCR420:
             str = "DISPLAY_COLOR_SPACE_YCBCR420";
+            displayColorSpace = DISPLAY_COLOR_SPACE_YCBCR420;
             break;
         default:
             str = "DISPLAY_COLOR_SPACE_RESERVED";
+            displayColorSpace = DISPLAY_COLOR_SPACE_RESERVED;
             break;
     }
     DEBUG("%s %d get colorSpace: %s",__FUNCTION__,__LINE__,str);
-    return colorSpace;
+    return displayColorSpace;
 }
 
 uint32_t getDisplayColorDepth(DISPLAY_CONNECTOR_TYPE connType) {
@@ -139,49 +140,51 @@ uint32_t getDisplayColorDepth(DISPLAY_CONNECTOR_TYPE connType) {
 }
 
 ENUM_DISPLAY_CONNECTION getDisplayConnectionStatus(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     char* str = NULL;
-    fd = display_meson_get_open();
-    ENUM_DISPLAY_CONNECTION ConnStatus = DISPLAY_UNKNOWNCONNECTION;
-    ConnStatus = meson_drm_getConnectionStatus(fd, connType);
+    ENUM_DISPLAY_CONNECTION displayConnStatus = DISPLAY_UNKNOWNCONNECTION;
+    int fd = display_meson_get_open();
+    ENUM_MESON_CONN_CONNECTION connStatus = meson_drm_getConnectionStatus(fd, connType);
     meson_close_drm(fd);
-    switch (ConnStatus)
-    {
-        case 0:
+    switch (connStatus) {
+        case MESON_DISCONNECTED:
             str = "DISPLAY_DISCONNECTED";
+            displayConnStatus = DISPLAY_DISCONNECTED;
             break;
-        case 1:
+        case MESON_CONNECTED:
             str = "DISPLAY_CONNECTED";
+            displayConnStatus = DISPLAY_CONNECTED;
             break;
         default:
             str = "DISPLAY_UNKNOWNCONNECTION";
+            displayConnStatus = DISPLAY_UNKNOWNCONNECTION;
             break;
     }
     DEBUG("%s %d get connection status: %s",__FUNCTION__,__LINE__,str);
-    return ConnStatus;
+    return displayConnStatus;
 }
 
 ENUM_DISPLAY_HDCP_VERSION getDisplayHdcpVersion(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
     char* str = NULL;
-    fd = display_meson_get_open();
-    ENUM_DISPLAY_HDCP_VERSION hdcpVersion = DISPLAY_HDCP_RESERVED;
-    hdcpVersion = meson_drm_getHdcpVersion(fd, connType);
+    ENUM_DISPLAY_HDCP_VERSION displayHdcpVersion = DISPLAY_HDCP_RESERVED;
+    int fd = display_meson_get_open();
+    ENUM_MESON_HDCP_VERSION hdcpVersion = meson_drm_getHdcpVersion(fd, connType);
     meson_close_drm(fd);
-    switch (hdcpVersion)
-    {
-        case 0:
+    switch (hdcpVersion) {
+        case MESON_HDCP_14:
             str = "DISPLAY_HDCP_14";
+            displayHdcpVersion = DISPLAY_HDCP_14;
             break;
-        case 1:
+        case MESON_HDCP_22:
             str = "DISPLAY_HDCP_22";
+            displayHdcpVersion = DISPLAY_HDCP_22;
             break;
         default:
             str = "DISPLAY_HDCP_RESERVED";
+            displayHdcpVersion = DISPLAY_HDCP_RESERVED;
             break;
     }
     DEBUG("%s %d get hdcp version: %s",__FUNCTION__,__LINE__,str);
-    return hdcpVersion;
+    return displayHdcpVersion;
 }
 
 int getDisplayMode(DisplayModeInfo* modeInfo, DISPLAY_CONNECTOR_TYPE connType) {
@@ -203,30 +206,30 @@ int getDisplayMode(DisplayModeInfo* modeInfo, DISPLAY_CONNECTOR_TYPE connType) {
 }
 
 ENUM_DISPLAY_HDR_POLICY getDisplayHDRPolicy(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
-    fd = display_meson_get_open();
     char* str = NULL;
-    ENUM_DISPLAY_HDR_POLICY hdrPolicy = DISPLAY_HDR_POLICY_FOLLOW_SINK;
-    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
-    hdrPolicy = meson_drm_getHDRPolicy(fd, connType);
-    forcemode = meson_drm_getHdrForceMode(fd, connType);
+    ENUM_DISPLAY_HDR_POLICY displayHdrPolicy = DISPLAY_HDR_POLICY_FOLLOW_SOURCE;
+    int fd = display_meson_get_open();
+    ENUM_MESON_HDR_POLICY hdrPolicy = meson_drm_getHDRPolicy(fd, connType);
     meson_close_drm(fd);
-    switch (hdrPolicy)
-    {
-        case 0:
+    switch (hdrPolicy) {
+        case MESON_HDR_POLICY_FOLLOW_SINK:
             str = "DISPLAY_HDR_POLICY_FOLLOW_SINK";
+            displayHdrPolicy = DISPLAY_HDR_POLICY_FOLLOW_SINK;
             break;
-        case 1:
+        case MESON_HDR_POLICY_FOLLOW_SOURCE:
             str = "DISPLAY_HDR_POLICY_FOLLOW_SOURCE";
+            displayHdrPolicy = DISPLAY_HDR_POLICY_FOLLOW_SOURCE;
             break;
-        case 2:
+        case MESON_HDR_POLICY_FOLLOW_FORCE_MODE:
             str = "DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE";
+            displayHdrPolicy = DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE;
             break;
         default:
+            str = "DISPLAY_HDR_POLICY_FOLLOW_SOURCE";
             break;
     }
-    DEBUG("%s %d get hdr policy: %s,force mode: %d",__FUNCTION__,__LINE__,str,forcemode);
-    return hdrPolicy;
+    DEBUG("%s %d get hdr policy: %s",__FUNCTION__,__LINE__,str);
+    return displayHdrPolicy;
 }
 
 int getDisplayModesList(DisplayModeInfo** modeInfo, int* modeCount,DISPLAY_CONNECTOR_TYPE connType) {
@@ -266,60 +269,64 @@ int getDisplayPreferMode( DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connT
 }
 
 ENUM_DISPLAY_HDCP_Content_Type getDisplayHDCPContentType(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     char* str = NULL;
-    fd = display_meson_get_open();
-    ENUM_DISPLAY_HDCP_Content_Type ContentType = DISPLAY_HDCP_Type_RESERVED;
-    ContentType = meson_drm_getHDCPContentType(fd, connType);
+    ENUM_DISPLAY_HDCP_Content_Type displayHDCPType = DISPLAY_HDCP_Type_RESERVED;
+    int fd = display_meson_get_open();
+    ENUM_MESON_HDCP_Content_Type HDCPType = meson_drm_getHDCPContentType(fd, connType);
     meson_close_drm(fd);
-    switch (ContentType)
-    {
-        case 0:
+    switch (HDCPType) {
+        case MESON_HDCP_Type0:
             str = "DISPLAY_HDCP_Type0";
+            displayHDCPType = DISPLAY_HDCP_Type0;
             break;
-        case 1:
+        case MESON_HDCP_Type1:
             str = "DISPLAY_HDCP_Type1";
+            displayHDCPType = DISPLAY_HDCP_Type1;
             break;
         default:
             str = "DISPLAY_HDCP_Type_RESERVED";
+            displayHDCPType = DISPLAY_HDCP_Type_RESERVED;
             break;
     }
     DEBUG("%s %d get hdcp content type: %s",__FUNCTION__,__LINE__,str);
-    return ContentType;
+    return displayHDCPType;
 }
 
 ENUM_DISPLAY_Content_Type getDisplayContentType( DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     char* str = NULL;
-    fd = display_meson_get_open();
-    ENUM_DISPLAY_Content_Type ContentType = DISPLAY_Content_Type_RESERVED;
-    ContentType = meson_drm_getContentType(fd, connType);
+    ENUM_DISPLAY_Content_Type displayContentType = DISPLAY_Content_Type_RESERVED;
+    int fd = display_meson_get_open();
+    MESON_CONTENT_TYPE contentType = meson_drm_getContentType(fd, connType);
     meson_close_drm(fd);
-    switch (ContentType)
-    {
-        case 0:
+    switch (contentType) {
+        case MESON_CONTENT_TYPE_Data:
             str = "DISPLAY_Content_Type_Data";
+            displayContentType = DISPLAY_Content_Type_Data;
             break;
-        case 1:
+        case MESON_CONTENT_TYPE_Graphics:
             str = "DISPLAY_Content_Type_Graphics";
+            displayContentType = DISPLAY_Content_Type_Graphics;
             break;
-         case 2:
+         case MESON_CONTENT_TYPE_Photo:
             str = "DISPLAY_Content_Type_Photo";
+            displayContentType = DISPLAY_Content_Type_Photo;
             break;
-        case 3:
+        case MESON_CONTENT_TYPE_Cinema:
             str = "DISPLAY_Content_Type_Cinema";
+            displayContentType = DISPLAY_Content_Type_Cinema;
             break;
-         case 4:
+         case MESON_CONTENT_TYPE_Game:
             str = "DISPLAY_Content_Type_Game";
+            displayContentType = DISPLAY_Content_Type_Game;
             break;
         default:
             str = "DISPLAY_Content_Type_RESERVED";
+            displayContentType = DISPLAY_Content_Type_RESERVED;
             break;
     }
     DEBUG("%s %d get content type: %s",__FUNCTION__,__LINE__,str);
-    return ContentType;
+    return displayContentType;
 }
-
 
 int getDisplayDvEnable(DISPLAY_CONNECTOR_TYPE connType ) {
     int fd = 0;
@@ -372,41 +379,47 @@ int getDisplayAVMute(DISPLAY_CONNECTOR_TYPE connType ) {
 }
 
 ENUM_DISPLAY_HDR_MODE getDisplayHdrStatus(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
     char* str = NULL;
-    fd = display_meson_get_open();
-    ENUM_DISPLAY_HDR_MODE hdrMode = MESON_DISPLAY_SDR;
-    hdrMode = meson_drm_getHdrStatus(fd, connType);
+    int fd = display_meson_get_open();
+    ENUM_MESON_HDR_MODE hdrMode = meson_drm_getHdrStatus(fd, connType);
+    ENUM_DISPLAY_HDR_MODE displayHdrMode = MESON_DISPLAY_SDR;
     meson_close_drm(fd);
-    switch (hdrMode)
-    {
-        case 0:
+    switch (hdrMode) {
+        case MESON_HDR10PLUS:
             str = "MESON_DISPLAY_HDR10PLUS";
+            displayHdrMode = MESON_DISPLAY_HDR10PLUS;
             break;
-        case 1:
+        case MESON_DOLBYVISION_STD:
             str = "MESON_DISPLAY_DolbyVision_STD";
+            displayHdrMode = MESON_DISPLAY_DolbyVision_STD;
             break;
-        case 2:
+        case MESON_DOLBYVISION_LL:
             str = "MESON_DISPLAY_DolbyVision_Lowlatency";
+            displayHdrMode = MESON_DISPLAY_DolbyVision_Lowlatency;
             break;
-        case 3:
+        case MESON_HDR10_ST2084:
             str = "MESON_DISPLAY_HDR10_ST2084";
+            displayHdrMode = MESON_DISPLAY_HDR10_ST2084;
             break;
-        case 4:
+        case MESON_HDR10_TRADITIONAL:
             str = "MESON_DISPLAY_HDR10_TRADITIONAL";
+            displayHdrMode = MESON_DISPLAY_HDR10_TRADITIONAL;
             break;
-        case 5:
+        case MESON_HDR_HLG:
             str = "MESON_DISPLAY_HDR_HLG";
+            displayHdrMode = MESON_DISPLAY_HDR_HLG;
             break;
-        case 6:
+        case MESON_SDR:
             str = "MESON_DISPLAY_SDR";
+            displayHdrMode = MESON_DISPLAY_SDR;
             break;
         default:
             str = "MESON_DISPLAY_SDR";
+            displayHdrMode = MESON_DISPLAY_SDR;
             break;
     }
     DEBUG("%s %d get hdr status: %s",__FUNCTION__,__LINE__,str);
-    return hdrMode;
+    return displayHdrMode;
 }
 
 bool modeAttrSupportedCheck(char* modeName, ENUM_DISPLAY_COLOR_SPACE colorSpace,
@@ -458,28 +471,30 @@ bool modeAttrSupportedCheck(char* modeName, ENUM_DISPLAY_COLOR_SPACE colorSpace,
 }
 
 ENUM_DISPLAY_ASPECT_RATIO getDisplayAspectRatioValue(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
     char* str = NULL;
-    fd = display_meson_get_open();
-    ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO = meson_drm_getAspectRatioValue(fd, connType );
-    meson_close_drm(fd);
-    switch (ASPECTRATIO)
-    {
-    case 0:
-        str = "DISPLAY_ASPECT_RATIO_AUTOMATIC";
-        break;
-    case 1:
-        str = "DISPLAY_ASPECT_RATIO_4_3";
-        break;
-    case 2:
-        str = "DISPLAY_ASPECT_RATIO_16_9";
-        break;
-    default:
-        str = "DISPLAY_ASPECT_RATIO_RESERVED";
-        break;
+    int fd = display_meson_get_open();
+    ENUM_MESON_ASPECT_RATIO aspectRatio = meson_drm_getAspectRatioValue(fd, connType );
+    ENUM_DISPLAY_ASPECT_RATIO displayAspectRatio = DISPLAY_ASPECT_RATIO_RESERVED;
+    switch (aspectRatio) {
+        case MESON_ASPECT_RATIO_AUTOMATIC:
+            str = "DISPLAY_ASPECT_RATIO_AUTOMATIC";
+            displayAspectRatio = DISPLAY_ASPECT_RATIO_AUTOMATIC;
+            break;
+        case MESON_ASPECT_RATIO_4_3:
+            str = "DISPLAY_ASPECT_RATIO_4_3";
+            displayAspectRatio = DISPLAY_ASPECT_RATIO_4_3;
+            break;
+        case MESON_ASPECT_RATIO_16_9:
+            str = "DISPLAY_ASPECT_RATIO_16_9";
+            displayAspectRatio = DISPLAY_ASPECT_RATIO_16_9;
+            break;
+        default:
+            str = "DISPLAY_ASPECT_RATIO_RESERVED";
+            displayAspectRatio = DISPLAY_ASPECT_RATIO_RESERVED;
+            break;
     }
     DEBUG("%s %d get aspect ratio %s",__FUNCTION__,__LINE__,str);
-    return ASPECTRATIO;
+    return displayAspectRatio;
 }
 
 int getDisplayFracRatePolicy(DISPLAY_CONNECTOR_TYPE connType ) {

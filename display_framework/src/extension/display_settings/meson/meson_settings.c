@@ -115,27 +115,34 @@ out:
 
 int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE colorSpace,
                                     DISPLAY_CONNECTOR_TYPE connType) {
-    int res = -1;
+    int res1 = -1;
+    int res2 = -1;
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
     char* str = NULL;
+    ENUM_MESON_COLOR_SPACE mesonColorSpace = MESON_COLOR_SPACE_RESERVED;
     switch (colorSpace)
     {
-        case 0:
+        case DISPLAY_COLOR_SPACE_RGB:
             str = "DISPLAY_COLOR_SPACE_RGB";
+            mesonColorSpace = MESON_COLOR_SPACE_RGB;
             break;
-        case 1:
+        case DISPLAY_COLOR_SPACE_YCBCR422:
             str = "DISPLAY_COLOR_SPACE_YCBCR422";
+            mesonColorSpace = MESON_COLOR_SPACE_YCBCR422;
             break;
-        case 2:
+        case DISPLAY_COLOR_SPACE_YCBCR444:
             str = "DISPLAY_COLOR_SPACE_YCBCR444";
+            mesonColorSpace = MESON_COLOR_SPACE_YCBCR444;
             break;
-        case 3:
+        case DISPLAY_COLOR_SPACE_YCBCR420:
             str = "DISPLAY_COLOR_SPACE_YCBCR420";
+            mesonColorSpace = MESON_COLOR_SPACE_YCBCR420;
             break;
         default:
             str = "DISPLAY_COLOR_SPACE_RESERVED";
+            mesonColorSpace = MESON_COLOR_SPACE_RESERVED;
             break;
     }
     DEBUG(" %s %d set colorDepth: %d colorSpace: %s",__FUNCTION__,__LINE__,colorDepth,str);
@@ -145,9 +152,9 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
         ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
-    res = meson_drm_setColorDepth(fd, req, colorDepth, connType);
-    res = meson_drm_setColorSpace(fd, req, colorSpace, connType);
-    if (res == -1) {
+    res1 = meson_drm_setColorDepth(fd, req, colorDepth, connType);
+    res2 = meson_drm_setColorSpace(fd, req, mesonColorSpace, connType);
+    if (res1 == -1 || res2 == -1) {
         ERROR("%s %d set <colorDepth,colorSpace> fail",__FUNCTION__,__LINE__);
         goto out;
     }
@@ -171,23 +178,38 @@ int setDisplayHDRPolicy(ENUM_DISPLAY_HDR_POLICY hdrPolicy, DISPLAY_CONNECTOR_TYP
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
-    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
+    ENUM_MESON_DRM_FORCE_MODE forcemode = MESON_DRM_UNKNOWN_FMT;
+    ENUM_MESON_HDR_POLICY mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SOURCE;
     DEBUG("%s %d set hdr policy %d",__FUNCTION__,__LINE__,hdrPolicy);
-    fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
         DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
-    respolicy = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
+    switch (hdrPolicy) {
+        case DISPLAY_HDR_POLICY_FOLLOW_SINK:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SINK;
+            break;
+        case DISPLAY_HDR_POLICY_FOLLOW_SOURCE:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SOURCE;
+            break;
+         case DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_FORCE_MODE;
+            break;
+        default:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SOURCE;
+            break;
+    }
+    fd = display_meson_set_open();
+    respolicy = meson_drm_setHDRPolicy(fd, req, mesonHdrPolicy, connType);
     if (respolicy == -1) {
         ERROR("%s %d set hdr policy fail",__FUNCTION__,__LINE__);
         goto out;
     }
     if (hdrPolicy == DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE) {
-        forcemode = DISPLAY_BT709;
+        forcemode = MESON_DRM_BT709;
     } else {
-        forcemode = DISPLAY_UNKNOWN_FMT;
+        forcemode = MESON_DRM_UNKNOWN_FMT;
     }
     DEBUG("%s %d set force mode %d",__FUNCTION__,__LINE__,forcemode);
     resforce = meson_drm_setHdrForceMode(fd, req, forcemode, connType);
@@ -453,36 +475,39 @@ out:
     return ret;
 }
 
-
-int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO ASPECTRATIO, DISPLAY_CONNECTOR_TYPE connType) {
+int setDisplayAspectRatioValue(ENUM_DISPLAY_ASPECT_RATIO aspectRatio, DISPLAY_CONNECTOR_TYPE connType) {
     int res = -1;
     int ret = -1;
     int fd = 0;
     drmModeAtomicReq *req = NULL;
     char* str = NULL;
-    switch (ASPECTRATIO)
-    {
-    case 0:
-        str = "DISPLAY_ASPECT_RATIO_AUTOMATIC";
-        break;
-    case 1:
-        str = "DISPLAY_ASPECT_RATIO_4_3";
-        break;
-    case 2:
-        str = "DISPLAY_ASPECT_RATIO_16_9";
-        break;
-    default:
-        str = "DISPLAY_ASPECT_RATIO_RESERVED";
-        break;
+    ENUM_MESON_ASPECT_RATIO mesonAspectRatio = MESON_ASPECT_RATIO_RESERVED;
+    switch (aspectRatio) {
+        case DISPLAY_ASPECT_RATIO_AUTOMATIC:
+            str = "DISPLAY_ASPECT_RATIO_AUTOMATIC";
+            mesonAspectRatio = MESON_ASPECT_RATIO_AUTOMATIC;
+            break;
+        case DISPLAY_ASPECT_RATIO_4_3:
+            str = "DISPLAY_ASPECT_RATIO_4_3";
+            mesonAspectRatio = MESON_ASPECT_RATIO_4_3;
+            break;
+        case DISPLAY_ASPECT_RATIO_16_9:
+            str = "DISPLAY_ASPECT_RATIO_16_9";
+            mesonAspectRatio = MESON_ASPECT_RATIO_16_9;
+            break;
+        default:
+            str = "DISPLAY_ASPECT_RATIO_RESERVED";
+            mesonAspectRatio = MESON_ASPECT_RATIO_RESERVED;
+            break;
     }
     DEBUG("%s %d set aspect ratio %s",__FUNCTION__,__LINE__, str);
-    fd = display_meson_set_open();
     req = drmModeAtomicAlloc();
     if (req == NULL) {
         DEBUG("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         goto out;
     }
-    res = meson_drm_setAspectRatioValue(fd, req, ASPECTRATIO, connType);
+    fd = display_meson_set_open();
+    res = meson_drm_setAspectRatioValue(fd, req, mesonAspectRatio, connType);
     if (res == -1) {
         ERROR(" %s %d set aspect ratio value fail",__FUNCTION__,__LINE__);
         goto out;
@@ -565,7 +590,10 @@ int setDisplayFunctionAttribute( DisplayModeInfo* modeInfo,ENUM_DISPLAY_HDR_POLI
     int rescolorspace = -1;
     int resFracRate = -1;
     int fd = 0;
-    ENUM_DISPLAY_FORCE_MODE forcemode = DISPLAY_UNKNOWN_FMT;
+    char* str = NULL;
+    ENUM_MESON_DRM_FORCE_MODE forcemode = MESON_DRM_UNKNOWN_FMT;
+    ENUM_MESON_HDR_POLICY mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SOURCE;
+    ENUM_MESON_COLOR_SPACE mesonColorSpace = MESON_COLOR_SPACE_RESERVED;
     drmModeAtomicReq *req = NULL;
     DEBUG("%s %d set modeInfo: %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h,
                                (modeInfo->interlace == 0? "p":"i"), modeInfo->vrefresh);
@@ -584,16 +612,30 @@ int setDisplayFunctionAttribute( DisplayModeInfo* modeInfo,ENUM_DISPLAY_HDR_POLI
         ERROR("%s %d change mode fail",__FUNCTION__,__LINE__);
         goto out;
     }
-    DEBUG("%s %d set hdr policy：%d colordepth: %d colorspace： %d",__FUNCTION__,__LINE__,hdrPolicy,colorDepth,colorSpace,FracRate);
-    respolicy = meson_drm_setHDRPolicy(fd, req, hdrPolicy, connType);
+    switch (hdrPolicy) {
+        case DISPLAY_HDR_POLICY_FOLLOW_SINK:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SINK;
+            break;
+        case DISPLAY_HDR_POLICY_FOLLOW_SOURCE:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SOURCE;
+            break;
+         case DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_FORCE_MODE;
+            break;
+        default:
+            mesonHdrPolicy = MESON_HDR_POLICY_FOLLOW_SOURCE;
+            break;
+    }
+    DEBUG("%s %d set hdr policy：%d colordepth: %d colorspace： %d",__FUNCTION__,__LINE__,mesonHdrPolicy,colorDepth,colorSpace,FracRate);
+    respolicy = meson_drm_setHDRPolicy(fd, req, mesonHdrPolicy, connType);
     if (respolicy == -1) {
         ERROR("%s %d set hdr policy fail",__FUNCTION__,__LINE__);
         goto out;
     }
     if (hdrPolicy == DISPLAY_HDR_POLICY_FOLLOW_FORCE_MODE) {
-        forcemode = DISPLAY_BT709;
+        forcemode = MESON_DRM_BT709;
     } else {
-        forcemode = DISPLAY_UNKNOWN_FMT;
+        forcemode = MESON_DRM_UNKNOWN_FMT;
     }
     DEBUG("%s %d set force mode： %d",__FUNCTION__,__LINE__,forcemode);
     resforce = meson_drm_setHdrForceMode(fd, req, forcemode, connType);
@@ -606,7 +648,30 @@ int setDisplayFunctionAttribute( DisplayModeInfo* modeInfo,ENUM_DISPLAY_HDR_POLI
         ERROR("%s %d set color depth fail",__FUNCTION__,__LINE__);
         goto out;
     }
-    rescolorspace = meson_drm_setColorSpace(fd, req, colorSpace, connType);
+    switch (colorSpace)
+    {
+        case DISPLAY_COLOR_SPACE_RGB:
+            str = "DISPLAY_COLOR_SPACE_RGB";
+            mesonColorSpace = MESON_COLOR_SPACE_RGB;
+            break;
+        case DISPLAY_COLOR_SPACE_YCBCR422:
+            str = "DISPLAY_COLOR_SPACE_YCBCR422";
+            mesonColorSpace = MESON_COLOR_SPACE_YCBCR422;
+            break;
+        case DISPLAY_COLOR_SPACE_YCBCR444:
+            str = "DISPLAY_COLOR_SPACE_YCBCR444";
+            mesonColorSpace = MESON_COLOR_SPACE_YCBCR444;
+            break;
+        case DISPLAY_COLOR_SPACE_YCBCR420:
+            str = "DISPLAY_COLOR_SPACE_YCBCR420";
+            mesonColorSpace = MESON_COLOR_SPACE_YCBCR420;
+            break;
+        default:
+            str = "DISPLAY_COLOR_SPACE_RESERVED";
+            mesonColorSpace = MESON_COLOR_SPACE_RESERVED;
+            break;
+    }
+    rescolorspace = meson_drm_setColorSpace(fd, req, mesonColorSpace, connType);
     if (rescolorspace == -1) {
         ERROR("%s %d set color space fail",__FUNCTION__,__LINE__);
         goto out;

@@ -356,11 +356,14 @@ out:
     return  ret;
 }
 
+#define MAX_RETRY 3
+#define WAIT_TIME_MS 30
 int setDisplayMode(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
     int res = -1;
     int ret = -1;
     int resNum = -1;
     int fd = 0;
+    int retries = 0;
     drmModeAtomicReq *req = NULL;
     DEBUG("%s %d set modeInfo %dx%d%s%dhz",__FUNCTION__,__LINE__, modeInfo->w, modeInfo->h,
                                (modeInfo->interlace == 0? "p":"i") , modeInfo->vrefresh);
@@ -390,6 +393,27 @@ int setDisplayMode(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE connType) {
            }
        }
     }
+    DEBUG("%s %d master status %d \n",__FUNCTION__,__LINE__,drmIsMaster(fd));
+    while (retries < MAX_RETRY) {
+        if (drmIsMaster(fd)) {
+            DEBUG("%s %d already the master.\n",__FUNCTION__,__LINE__);
+            break;
+        } else {
+            DEBUG("%s %d setting master attempt number %d\n",__FUNCTION__,__LINE__,retries + 1);
+            if (drmSetMaster(fd)) {
+                DEBUG("%s %d became the master\n",__FUNCTION__,__LINE__);
+                break;
+            } else {
+                usleep(WAIT_TIME_MS * 1000);
+            }
+            retries++;
+        }
+    }
+    if (retries == MAX_RETRY) {
+        ERROR("%s %d failed to set the master after %d attempts. Exiting.\n",__FUNCTION__,__LINE__, MAX_RETRY);
+        goto out;
+    }
+    DEBUG("%s %d set the master status %d\n",__FUNCTION__,__LINE__,drmIsMaster(fd));
     ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
     if (ret) {
         ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
@@ -403,7 +427,6 @@ out:
     meson_close_drm(fd);
     return  ret;
 }
-
 
 int setDisplayAutoMode(DISPLAY_CONNECTOR_TYPE connType) {
     int count = 0;

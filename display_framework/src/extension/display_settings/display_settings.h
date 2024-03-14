@@ -175,6 +175,8 @@ int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE conn
 int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hstart,
                                                    uint16_t* vstart, DISPLAY_CONNECTOR_TYPE connType);
 int getDisplayIsBestMode(int* value);
+int setDisplayPlaneMute(unsigned int plane_type,  unsigned int plane_mute);
+int getDisplayRxSupportedHdcpVersion(DISPLAY_CONNECTOR_TYPE connType);
 
 int display_meson_get_open();
 int display_meson_set_open();

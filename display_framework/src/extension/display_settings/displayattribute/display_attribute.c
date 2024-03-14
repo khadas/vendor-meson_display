@@ -236,7 +236,7 @@ ENUM_DISPLAY_HDR_POLICY getDisplayHDRPolicy(DISPLAY_CONNECTOR_TYPE connType) {
 int getDisplayModesList(DisplayModeInfo** modeInfo, int* modeCount,DISPLAY_CONNECTOR_TYPE connType) {
     int fd = 0;
     int ret = -1;
-    if (modeInfo == NULL || *modeInfo == NULL || modeCount == NULL) {
+    if (modeInfo == NULL || modeCount == NULL) {
         ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         return ret;
     }
@@ -734,3 +734,15 @@ int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hst
     meson_close_drm(fd);
     return ret;
 }
+
+/* return 1: HDCP 1.4 supported*/
+/* return 2: HDCP 2.2 supported*/
+/* return 3: HDCP 1.4 and 2.2 all support*/
+int getDisplayRxSupportedHdcpVersion(DISPLAY_CONNECTOR_TYPE connType) {
+    int fd = display_meson_get_open();
+    int value = meson_drm_getRxSupportedHdcpVersion(fd, connType);
+    meson_close_drm(fd);
+    DEBUG("%s %d get prop_value %d",__FUNCTION__,__LINE__, value);
+    return value;
+}
+

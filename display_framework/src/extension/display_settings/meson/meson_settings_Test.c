@@ -45,7 +45,7 @@ int main()
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->hdr policy 3->av mute 4->HDMI HDCP enable 5-><colorDepth, colorSpace>"
         "6->HDCP Content Type  7->DvEnable 8->active 9->vrr Enable 10->auto mode 11->dummy mode 12->aspect ratio"
-         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode\n");
+         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode 17->plane mute \n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -55,6 +55,9 @@ int main()
             }else{
                 printf("setDisplayModeFail\n");
             }
+            if (modeInfo) {
+                free(modeInfo);
+            }
         } else if(set == 1 && len == 1){
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
             scanf("%d %d %d %d",&modeInfo->interlace,&modeInfo->w, &modeInfo->h,&modeInfo->vrefresh);
@@ -62,6 +65,9 @@ int main()
                 printf("\n mode：%d %d %d %d\n",modeInfo->interlace,modeInfo->h, modeInfo->h, modeInfo->vrefresh);
             }else{
                 printf("setDisplayModeFail\n");
+            }
+            if (modeInfo) {
+                free(modeInfo);
             }
         } else if (set == 2 && len == 1) {
             /*
@@ -177,6 +183,9 @@ int main()
             }else{
                 printf("setModeFail\n");
             }
+            if (modeInfo) {
+                free(modeInfo);
+            }
     } else if (set == 12 && len == 1 ) {
             printf("\n aspect ratio:\n");
             int ASPECTRATIO =-1;
@@ -209,6 +218,9 @@ int main()
                 } else {
                     printf("\n setDisplayModeAttr Fail!\n");
                 }
+                if (modeInfo) {
+                free(modeInfo);
+            }
         } else if (set == 14 && len == 1) {
             int  policy = 0;
             int colorDepth = 0;
@@ -245,6 +257,22 @@ int main()
             }else{
                 printf("setDisplayDvMode Fail\n");
             }
+        } else if (set == 17 && len == 1) {
+            printf("\ninput:plane_type:1 plane_mute:1 -> display black screen \n"
+                                "plane_type:1 plane_mute:0 -> normal display \n");
+            printf("\n please enter the parameters in order(plane_type plane_mute): \n");
+            int plane_type = 0; /* 0:osd plane, 1:video plane */
+            int plane_mute = 0; /* 0:umute plane, 1:mute plane */
+            len = scanf("%d %d",&plane_type,&plane_mute);
+            if (len == 2) {
+                if (setDisplayPlaneMute(plane_type, plane_mute) == 0) {
+                    printf("\n setDisplayPlaneMute Success\n");
+                } else {
+                    printf("setDisplayPlaneMute Fail\n");
+                }
+            } else {
+                    printf("\n \ scanf fail \n");
+            }
         }
     }
     else if(select_s == 1 && select_len == 1) {
@@ -253,7 +281,7 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          " 19->current aspect ratio 20->event test 21->frac rate policy 22->Supported dvmode 23->hdr supportedlist "
          " 24->DvCap 25->dpms status 26->mode support attrlist 27->framrate 28->primar plane fb size"
-         " 29->physical size 30->Timing information 31->dv mode \n");
+         " 29->physical size 30->Timing information 31->dv mode 32->rx supported hdcp version\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -266,6 +294,8 @@ int main()
             } else {
                 printf("\n getDisplayModeFail\n");
             }
+            if (modeInfo)
+                free(modeInfo);
         } else if(get == 2 && len == 1) {
             /*Rx and Tx successful authentication after get hdcp_version*/
             ENUM_DISPLAY_HDCP_VERSION value = getDisplayHdcpVersion( DISPLAY_CONNECTOR_HDMIA);
@@ -306,11 +336,12 @@ int main()
                       " DISPLAY_AUTH_STATUS_SUCCESS = 1 \n value:%d\n", value);
         } else if (get == 8 && len == 1) {
             int count = 0;
+            DisplayModeInfo* modeInfo = NULL;
             if (0 == getDisplayModesList( &modeInfo, &count,DISPLAY_CONNECTOR_HDMIA )) {
                 printf("\n mode count:%d\n",count);
                 int i = 0;
                 for (int i=0; i<count; i++) {
-                    printf(" (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
+                    printf("mode (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
                 }
                 if (modeInfo)
                     free(modeInfo);
@@ -365,11 +396,12 @@ int main()
                      , value);
         } else if (get == 17 && len == 1) {
             int count = 0;
+            DisplayModeInfo* modeInfo = NULL;
             if (getDisplayModesList( &modeInfo, &count,DISPLAY_CONNECTOR_CVBS ) == 0) {
                 printf("\n mode count:%d\n",count);
                 int i = 0;
                 for (int i=0; i< count; i++) {
-                    printf(" (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
+                    printf("mode (%s %d %d %d %d)\n", modeInfo[i].name, modeInfo[i].w, modeInfo[i].h, modeInfo[i].interlace,modeInfo[i].vrefresh);
                 }
                 if (modeInfo)
                     free(modeInfo);
@@ -454,12 +486,12 @@ int main()
             } else {
                 printf("\n getDisplaySupportAttrList Fail");
             }
-            free(modeInfo);
+            if (modeInfo)
+                free(modeInfo);
         } else if(get == 27 && len == 1) {
             //name：FRAC_RATE_POLICY value：0 整数mode， value：1 小数mode , 大部分情况下默认开机是小数
             float value = getDisplayFrameRate(DISPLAY_CONNECTOR_HDMIA);
             printf("\n get framrate %.2f",value);
-            free(modeInfo);
         } else if(get == 28 && len == 1) {
             int width = 0;
             int height = 0;
@@ -496,6 +528,20 @@ int main()
             } else  {
                 printf("\n get dv mode value: %d\n",value);
             }
+        } else if (get == 32 && len == 1) {
+            int value = getDisplayRxSupportedHdcpVersion(DISPLAY_CONNECTOR_HDMIA );
+            if (value & 0x1) {
+               printf("\nRX HDCP 1.4 supported \n");
+               if (value & 0x2) {
+                   printf("RX HDCP 2.2 supported as well\n");
+               } else {
+                   printf("RX HDCP 2.2 not supported\n");
+               }
+           } else {
+               if (!(value & 0x2)) {
+                   printf("\n get_prop fail\n");
+               }
+           }
         }
     }
     else {

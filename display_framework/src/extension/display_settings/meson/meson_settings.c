@@ -769,3 +769,16 @@ out:
     return  ret;
 }
 
+int setDisplayPlaneMute(unsigned int plane_type, unsigned int plane_mute) {
+    int res = -1;
+    int fd = -1;
+    DEBUG("%s %d set plane_type: %d plane_mute:%d",__FUNCTION__,__LINE__,plane_type,plane_mute);
+    fd = display_meson_set_open();
+    res = meson_drm_setPlaneMute(fd, plane_type, plane_mute);
+    if (res) {
+        ERROR("%s %d set plane mute fail",__FUNCTION__,__LINE__);
+    }
+    meson_close_drm(fd);
+    return res;
+}
+

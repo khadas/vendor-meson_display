@@ -51,7 +51,7 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          "19->current aspect ratio 20->event test 21->frac rate policy 22->scaling 23->Supported dvmode"
          " 24->hdr supportedlist 25->DvCap 26->display enabled 27->dpms status 28->mode support attrlist 29->framrate"
-         " 30->primar plane fb size 31->physical size 32->Timing information\n");
+         " 30->primar plane fb size 31->physical size 32->Timing information 33->dv mode\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -216,8 +216,8 @@ int main()
         } else if (get == 22 && len == 1) {
             printf("The current weston set API is not developed\n");
         } else if (get == 23 && len == 1) {
-            int value = getDisplaySupportedDVMode(DISPLAY_CONNECTOR_HDMIA);
-            printf("getDisplaySupportedDVMode %d\n",value);
+            int value = getDisplaySupportedDvMode(DISPLAY_CONNECTOR_HDMIA);
+            printf("getDisplaySupportedDvMode %d\n",value);
         } else if (get == 24 && len == 1) {
             uint32_t value  = getDisplayHDRSupportList(DISPLAY_CONNECTOR_HDMIA);
             printf("\n value %d\n",value);
@@ -287,6 +287,13 @@ int main()
                                   hstart,vstart);
             } else {
                 printf("\n getDisplaySignalTimingInfo fail\n");
+            }
+        } else if (get == 33 && len == 1) {
+            int value = getDisplayDvMode( DISPLAY_CONNECTOR_HDMIA );
+            if (value == -1) {
+                printf("\n get dv mode fail\n");
+            } else  {
+                printf("\n get dv mode value: %d\n",value);
             }
         }
     }

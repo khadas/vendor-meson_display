@@ -738,7 +738,7 @@ int setDisplayVideoZorder(unsigned int index, unsigned int zorder, unsigned int 
     return ret;
 }
 
-int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
+int setDisplayDvMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
     int res = -1;
     int ret = -1;
     int fd = 0;

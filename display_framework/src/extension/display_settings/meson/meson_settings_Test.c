@@ -240,10 +240,10 @@ int main()
             printf("dvmode: \n");
             int dvmode = -1;
             scanf("%d", &dvmode);
-            if (setDisplayDVMode(dvmode,DISPLAY_CONNECTOR_HDMIA) == 0) {
-                printf("\n setDisplayDVMode Success\n");
+            if (setDisplayDvMode(dvmode,DISPLAY_CONNECTOR_HDMIA) == 0) {
+                printf("\n setDisplayDvMode Success\n");
             }else{
-                printf("setDisplayDVMode Fail\n");
+                printf("setDisplayDvMode Fail\n");
             }
         }
     }
@@ -253,7 +253,7 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          " 19->current aspect ratio 20->event test 21->frac rate policy 22->Supported dvmode 23->hdr supportedlist "
          " 24->DvCap 25->dpms status 26->mode support attrlist 27->framrate 28->primar plane fb size"
-         " 29->physical size 30->Timing information\n");
+         " 29->physical size 30->Timing information 31->dv mode \n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -267,6 +267,7 @@ int main()
                 printf("\n getDisplayModeFail\n");
             }
         } else if(get == 2 && len == 1) {
+            /*Rx and Tx successful authentication after get hdcp_version*/
             ENUM_DISPLAY_HDCP_VERSION value = getDisplayHdcpVersion( DISPLAY_CONNECTOR_HDMIA);
             printf("\n DISPLAY_HDCP_14      = 0\n"
                      " DISPLAY_HDCP_22      = 1\n value:%d \n", value);
@@ -417,8 +418,8 @@ int main()
                 printf("\n FracRate: %d\n",value);
             }
         } else if (get == 22 && len == 1) {
-            int value = getDisplaySupportedDVMode(DISPLAY_CONNECTOR_HDMIA);
-            printf("getDisplaySupportedDVMode %d\n",value);
+            int value = getDisplaySupportedDvMode(DISPLAY_CONNECTOR_HDMIA);
+            printf("getDisplaySupportedDvMode %d\n",value);
         } else if (get == 23 && len == 1) {
             uint32_t value = getDisplayHDRSupportList(DISPLAY_CONNECTOR_HDMIA);
             printf("\n value %d\n",value);
@@ -487,6 +488,13 @@ int main()
                                   hstart,vstart);
             } else {
                 printf("\n getDisplaySignalTimingInfo fail\n");
+            }
+        } else if (get == 31 && len == 1) {
+            int value = getDisplayDvMode( DISPLAY_CONNECTOR_HDMIA );
+            if (value == -1) {
+                printf("\n get dv mode fail\n");
+            } else  {
+                printf("\n get dv mode value: %d\n",value);
             }
         }
     }

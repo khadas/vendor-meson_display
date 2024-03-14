@@ -163,6 +163,7 @@ ENUM_DISPLAY_CONNECTION getDisplayConnectionStatus(DISPLAY_CONNECTOR_TYPE connTy
     return displayConnStatus;
 }
 
+/*Rx and Tx successful authentication after hdcp_version*/
 ENUM_DISPLAY_HDCP_VERSION getDisplayHdcpVersion(DISPLAY_CONNECTOR_TYPE connType ) {
     char* str = NULL;
     ENUM_DISPLAY_HDCP_VERSION displayHdcpVersion = DISPLAY_HDCP_RESERVED;
@@ -575,7 +576,7 @@ int getDisplaySupportAttrList(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE c
     return ret;
 }
 
-int getDisplaySupportedDVMode( DISPLAY_CONNECTOR_TYPE connType ) {
+int getDisplaySupportedDvMode( DISPLAY_CONNECTOR_TYPE connType ) {
     int fd = 0;
     fd = display_meson_get_open();
     int value = meson_drm_getDvCap(fd, connType );
@@ -675,7 +676,6 @@ float getDisplayFrameRate(DISPLAY_CONNECTOR_TYPE connType) {
 int getDisplayPlaneSize( int* width, int* height ) {
     int fd = 0;
     int ret = -1;
-    int rc = -1;
     if (width == NULL || height == NULL) {
         ERROR("%s %d Error: One or both pointers are NULL.\n",__FUNCTION__,__LINE__);
         return ret;
@@ -692,7 +692,6 @@ int getDisplayPlaneSize( int* width, int* height ) {
 int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE connType ) {
     int fd = 0;
     int ret = -1;
-    int rc = -1;
     if (width == NULL || height == NULL) {
         ERROR("%s %d Error: One or both pointers are NULL.\n",__FUNCTION__,__LINE__);
         return ret;
@@ -706,11 +705,22 @@ int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE conn
     return ret;
 }
 
+int getDisplayDvMode(DISPLAY_CONNECTOR_TYPE connType ) {
+    int fd = display_meson_get_open();
+    int ret = meson_drm_getDvMode(fd, connType );
+    if (ret == -1) {
+        ERROR("%s %d get dv mode fail", __FUNCTION__, __LINE__);
+    } else {
+        DEBUG("%s %d get dv mode value %d",__FUNCTION__,__LINE__,ret);
+    }
+    meson_close_drm(fd);
+    return ret;
+}
+
 int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hstart,
                                              uint16_t* vstart, DISPLAY_CONNECTOR_TYPE connType) {
     int fd = 0;
     int ret = -1;
-    int rc = -1;
     if (htotal == NULL || vtotal == NULL || hstart == NULL || vstart == NULL) {
         ERROR("%s %d Error: have pointers are NULL.\n",__FUNCTION__,__LINE__);
         return ret;

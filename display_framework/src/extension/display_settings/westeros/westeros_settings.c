@@ -539,7 +539,7 @@ int setDisplayEnabled(int enabled) {
     return ret;
 }
 
-int setDisplayDVMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
+int setDisplayDvMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int crtcId = -1;
     char resp[OUTPUT_SIZE] = {'\0'};

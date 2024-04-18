@@ -45,7 +45,8 @@ int main()
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->hdr policy 3->av mute 4->HDMI HDCP enable 5-><colorDepth, colorSpace>"
         "6->HDCP Content Type  7->DvEnable 8->active 9->vrr Enable 10->auto mode 11->dummy mode 12->aspect ratio"
-         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode 17->plane mute 18->background color\n");
+         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode 17->plane mute 18->background color"
+         "19->cvbs video mute\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -286,6 +287,16 @@ int main()
             } else {
                printf("setDisplayBackGroundColor success\n");
             }
+        }  else if(set == 19 && len == 1){
+            printf("\n cvbs video mute:\n");
+            int mute = 0;
+            len = scanf("%d", &mute);
+            if (len == 1) {
+                if (setDisplayCvbsAVMute(mute))
+                    printf("\n setDisplayCvbsAVMute fail:\n");
+            } else {
+                printf("\n scanf fail\n");
+            }
         }
     }
     else if(select_s == 1 && select_len == 1) {
@@ -294,7 +305,7 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          " 19->current aspect ratio 20->event test 21->frac rate policy 22->Supported dvmode 23->hdr supportedlist "
          " 24->DvCap 25->dpms status 26->mode support attrlist 27->framrate 28->primar plane fb size"
-         " 29->physical size 30->Timing information 31->dv mode 32->rx supported hdcp version\n");
+         " 29->physical size 30->Timing information 31->dv mode 32->rx supported hdcp version 33->cvbs video mute\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -555,6 +566,9 @@ int main()
                    printf("\n get_prop fail\n");
                }
            }
+        } else if (get == 33 && len == 1) {
+            int value = getDisplayCvbsAVMute( );
+            printf("\n cvbs video mute:%d\n",value);
         }
     }
     else {

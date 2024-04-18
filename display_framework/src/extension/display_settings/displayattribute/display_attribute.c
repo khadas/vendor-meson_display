@@ -78,8 +78,7 @@ ENUM_DISPLAY_HDCPAUTH_STATUS getDisplayHdcpAuthStatus(DISPLAY_CONNECTOR_TYPE con
 }
 
 void getDisplayEDIDData(DISPLAY_CONNECTOR_TYPE connType, int * data_Len, char **data ) {
-    int fd = 0;
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     if (data_Len == NULL || data == NULL) {
         ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         return;
@@ -97,10 +96,9 @@ void getDisplayEDIDData(DISPLAY_CONNECTOR_TYPE connType, int * data_Len, char **
 }
 
 ENUM_DISPLAY_COLOR_SPACE getDisplayColorSpace(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     char* str = NULL;
     ENUM_DISPLAY_COLOR_SPACE displayColorSpace = DISPLAY_COLOR_SPACE_RESERVED;
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ENUM_MESON_COLOR_SPACE colorSpace = meson_drm_getColorSpace(fd, connType);
     meson_close_drm(fd);
     switch (colorSpace) {
@@ -130,10 +128,8 @@ ENUM_DISPLAY_COLOR_SPACE getDisplayColorSpace(DISPLAY_CONNECTOR_TYPE connType) {
 }
 
 uint32_t getDisplayColorDepth(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
-    fd = display_meson_get_open();
-    int value = 0;
-    value = meson_drm_getColorDepth(fd, connType);
+    int fd = display_meson_get_open();
+    int value = meson_drm_getColorDepth(fd, connType);
     meson_close_drm(fd);
     DEBUG("%s %d get ColorDepth: %d",__FUNCTION__,__LINE__,value);
     return value;
@@ -189,13 +185,12 @@ ENUM_DISPLAY_HDCP_VERSION getDisplayHdcpVersion(DISPLAY_CONNECTOR_TYPE connType 
 }
 
 int getDisplayMode(DisplayModeInfo* modeInfo, DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     int ret = -1;
     if (modeInfo == NULL) {
         ERROR("%s %d modeInfo == NULL return",__FUNCTION__,__LINE__);
         return ret;
     }
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getModeInfo(fd, connType, modeInfo);
     if (ret == -1) {
         ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
@@ -234,13 +229,12 @@ ENUM_DISPLAY_HDR_POLICY getDisplayHDRPolicy(DISPLAY_CONNECTOR_TYPE connType) {
 }
 
 int getDisplayModesList(DisplayModeInfo** modeInfo, int* modeCount,DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     int ret = -1;
     if (modeInfo == NULL || modeCount == NULL) {
         ERROR(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
         return ret;
     }
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getsupportedModesList(fd, modeInfo, modeCount,connType);
     if (ret == -1) {
         ERROR("%s %d get supported modeslist failed: ret %d errno %d",__FUNCTION__,__LINE__, ret, errno );
@@ -330,9 +324,8 @@ ENUM_DISPLAY_Content_Type getDisplayContentType( DISPLAY_CONNECTOR_TYPE connType
 }
 
 int getDisplayDvEnable(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
     int ret = -1;
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getDvEnable(fd, connType );
     if (ret == -1) {
         ERROR("%s %d get DvEnable fail",__FUNCTION__,__LINE__);
@@ -343,14 +336,8 @@ int getDisplayDvEnable(DISPLAY_CONNECTOR_TYPE connType ) {
 }
 
 int getDisplayActive(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
-    fd = display_meson_get_open();
-    int ret = -1;
-    if (fd < 0) {
-       ERROR("%s %d fd < 0",__FUNCTION__,__LINE__);
-       return ret;
-    }
-    ret = meson_drm_getActive(fd, connType );
+    int fd = display_meson_get_open();
+    int ret = meson_drm_getActive(fd, connType );
     if (ret == -1) {
         ERROR("%s %d get active fail",__FUNCTION__,__LINE__);
     }
@@ -360,20 +347,16 @@ int getDisplayActive(DISPLAY_CONNECTOR_TYPE connType ) {
 }
 
 int getDisplayVrrEnabled(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
-    int ret = 0;
-    fd = display_meson_get_open();
-    ret = meson_drm_getVrrEnabled(fd, connType );
+    int fd = display_meson_get_open();
+    int ret = meson_drm_getVrrEnabled(fd, connType );
     meson_close_drm(fd);
     DEBUG("%s %d get VrrEnabled value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
 }
 
 int getDisplayAVMute(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
-    fd = display_meson_get_open();
-    int ret = 0;
-    ret = meson_drm_getAVMute(fd, connType );
+    int fd = display_meson_get_open();
+    int ret = meson_drm_getAVMute(fd, connType );
     meson_close_drm(fd);
     DEBUG("%s %d get AVMute value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
@@ -499,10 +482,8 @@ ENUM_DISPLAY_ASPECT_RATIO getDisplayAspectRatioValue(DISPLAY_CONNECTOR_TYPE conn
 }
 
 int getDisplayFracRatePolicy(DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
-    fd = display_meson_get_open();
-    int ret = -1;
-    ret = meson_drm_getFracRatePolicy(fd, connType );
+    int fd = display_meson_get_open();
+    int ret = meson_drm_getFracRatePolicy(fd, connType );
     meson_close_drm(fd);
     DEBUG("%s %d get frac_rate value: %d",__FUNCTION__,__LINE__,ret);
     return ret;
@@ -515,14 +496,13 @@ int getDisplaySupportAttrList(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE c
     char color[5] = {'\0'};
     int supportedcheck = -1;
     int ret = -1;
-    int fd = 0;
     int ColorDepth = 0;
     drmModeAtomicReq *req = NULL;
     if (modeInfo == NULL) {
         ERROR("%s %d invalid parameter return",__FUNCTION__,__LINE__);
         return ret;
     }
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getModeInfo(fd, connType, modeInfo);
     if (ret == -1) {
         ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
@@ -577,8 +557,7 @@ int getDisplaySupportAttrList(DisplayModeInfo* modeInfo,DISPLAY_CONNECTOR_TYPE c
 }
 
 int getDisplaySupportedDvMode( DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     int value = meson_drm_getDvCap(fd, connType );
     meson_close_drm(fd);
     DEBUG("%s %d supported dvmode, dv_cap: %d, supported_dv_mode: %d\n",__FUNCTION__,__LINE__,
@@ -614,33 +593,25 @@ static uint32_t getDisplayHDRSupportedList(uint64_t hdrlist, uint64_t dvlist) {
 }
 
 uint32_t getDisplayHDRSupportList(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
-    uint32_t hdrcap = 0;
-    uint32_t dvcap = 0;
-    uint32_t value_2 = 0;
-    fd = display_meson_get_open();
-    hdrcap = meson_drm_getHdrCap( fd, connType );
-    dvcap = meson_drm_getDvCap( fd, connType );
-    value_2 = getDisplayHDRSupportedList(hdrcap, dvcap);
-    DEBUG("%s %d meson_drm_getHDRSupportedList return %d",__FUNCTION__,__LINE__,value_2);
+    int fd = display_meson_get_open();
+    uint64_t hdrcap = meson_drm_getHdrCap( fd, connType );
+    uint64_t dvcap = meson_drm_getDvCap( fd, connType );
+    uint32_t value = getDisplayHDRSupportedList(hdrcap, dvcap);
+    DEBUG("%s %d get hdr support list value %d",__FUNCTION__,__LINE__,value);
     meson_close_drm(fd);
-    return value_2;
+    return value;
 }
 
 uint32_t getDisplayDvCap(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
-    uint32_t value = 0;
-    fd = display_meson_get_open();
-    value = meson_drm_getDvCap(fd, connType );
+    int fd = display_meson_get_open();
+    uint32_t value = meson_drm_getDvCap(fd, connType );
     meson_close_drm(fd);
     return value;
 }
 
 int getDisplayDpmsStatus(DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
-    fd = display_meson_get_open();
-    int value = 0;
-    value = meson_drm_getDpmsStatus(fd, connType);
+    int fd = display_meson_get_open();
+    int value = meson_drm_getDpmsStatus(fd, connType);
     meson_close_drm(fd);
     DEBUG("%s %d get dpms status %d",__FUNCTION__,__LINE__,value);
     return value;
@@ -648,12 +619,11 @@ int getDisplayDpmsStatus(DISPLAY_CONNECTOR_TYPE connType) {
 
 float getDisplayFrameRate(DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
-    int fd = 0;
     float refresh = 0.00;
     drmModeAtomicReq *req = NULL;
     DisplayModeInfo* modeInfo = NULL;
     modeInfo= (DisplayModeInfo*)malloc(sizeof(DisplayModeInfo));
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getModeInfo(fd, connType, modeInfo);
     if (ret == -1) {
         ERROR("%s %d get modeInfo fail",__FUNCTION__,__LINE__);
@@ -674,13 +644,12 @@ float getDisplayFrameRate(DISPLAY_CONNECTOR_TYPE connType) {
 }
 
 int getDisplayPlaneSize( int* width, int* height ) {
-    int fd = 0;
     int ret = -1;
     if (width == NULL || height == NULL) {
         ERROR("%s %d Error: One or both pointers are NULL.\n",__FUNCTION__,__LINE__);
         return ret;
     }
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getGraphicPlaneSize(fd, width, height);
     if ( ret == 0) {
         DEBUG("%s %d get graphic plane Size %d x %d",__FUNCTION__,__LINE__,*width, *height);
@@ -690,13 +659,12 @@ int getDisplayPlaneSize( int* width, int* height ) {
 }
 
 int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE connType ) {
-    int fd = 0;
     int ret = -1;
     if (width == NULL || height == NULL) {
         ERROR("%s %d Error: One or both pointers are NULL.\n",__FUNCTION__,__LINE__);
         return ret;
     }
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getPhysicalSize(fd, width, height, connType);
     if ( ret == 0) {
         DEBUG("%s %d get physical Size %d x %d",__FUNCTION__,__LINE__,*width, *height);
@@ -719,19 +687,26 @@ int getDisplayDvMode(DISPLAY_CONNECTOR_TYPE connType ) {
 
 int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hstart,
                                              uint16_t* vstart, DISPLAY_CONNECTOR_TYPE connType) {
-    int fd = 0;
     int ret = -1;
     if (htotal == NULL || vtotal == NULL || hstart == NULL || vstart == NULL) {
         ERROR("%s %d Error: have pointers are NULL.\n",__FUNCTION__,__LINE__);
         return ret;
     }
-    fd = display_meson_get_open();
+    int fd = display_meson_get_open();
     ret = meson_drm_getSignalTimingInfo(fd, htotal, vtotal, hstart, vstart, connType);
     if ( ret == 0) {
          DEBUG("%s %d signal timingInfo htotal: %d vtotal: %d hstart: %d vstart: %d",
                        __FUNCTION__,__LINE__,*htotal, *vtotal,*hstart,*vstart);
     }
     meson_close_drm(fd);
+    return ret;
+}
+
+int getDisplayCvbsAVMute( ) {
+    int fd = display_meson_get_open();
+    int ret = meson_drm_getCvbsAVMute(fd, MESON_CONNECTOR_CVBS );
+    meson_close_drm(fd);
+    DEBUG("%s %d get cvbs video mute %d",__FUNCTION__,__LINE__,ret);
     return ret;
 }
 

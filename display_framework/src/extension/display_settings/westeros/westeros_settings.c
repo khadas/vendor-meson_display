@@ -77,7 +77,6 @@ int setDisplayHDCPEnable(int enable, DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int rc = -1;
     int connId = -1;
-    int fd = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
     char resp[OUTPUT_SIZE] = {'\0'};
@@ -110,7 +109,6 @@ out:
 int setDisplayAVMute(int mute, DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int connId = -1;
-    int fd = -1;
     int rc = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
@@ -146,7 +144,6 @@ int setDisplayColorSpacedDepth(uint32_t colorDepth, ENUM_DISPLAY_COLOR_SPACE col
                                     DISPLAY_CONNECTOR_TYPE connType) {
     int ret = -1;
     int connId = -1;
-    int fd = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* space_prop_name = NULL;
     char* depth_prop_name = NULL;
@@ -259,7 +256,6 @@ int setDisplayHDCPContentType(ENUM_DISPLAY_HDCP_Content_Type HDCPType, DISPLAY_C
     int ret = -1;
     int rc = -1;
     int connId = -1;
-    int fd = -1;
     char cmdBuf[CMDBUF_SIZE] = {'\0'};
     char* prop_name = NULL;
     char resp[OUTPUT_SIZE] = {'\0'};
@@ -565,6 +561,39 @@ out:
         free(prop_name);
     }
     return ret;
+}
+
+int setDisplayCvbsAVMute(bool mute) {
+    int ret = -1;
+    int connId = -1;
+    int rc = -1;
+    char cmdBuf[CMDBUF_SIZE] = {'\0'};
+    char* prop_name = NULL;
+    char resp[OUTPUT_SIZE] = {'\0'};
+    connId = meson_drm_GetConnectorId(MESON_CONNECTOR_CVBS);
+    DEBUG("%s %d westeros set cvbs mute value %d connId %d",__FUNCTION__,__LINE__,
+                                      mute,connId);
+    if (connId > 0) {
+        prop_name = meson_drm_GetPropName(ENUM_MESON_DRM_CVBS_PROP_AVMUTE);
+        if (prop_name == NULL) {
+            ERROR("%s %d meson_drm_GetPropName return NULL",__FUNCTION__,__LINE__);
+            goto out;
+        }
+        DEBUG("%s %d get prop name %s",__FUNCTION__,__LINE__, prop_name);
+        snprintf(cmdBuf, sizeof(cmdBuf)-1, "set property -s %d:%s:%d", connId, prop_name, mute);
+        rc = wstDisplaySendMessage(cmdBuf,resp);
+        if (rc >= 0) {
+            ret = 0;
+        } else {
+            ERROR("%s %d send message fail",__FUNCTION__,__LINE__);
+        }
+    } else {
+        ERROR("%s %d meson_drm_GetConnectorId return fail",__FUNCTION__,__LINE__);
+    }
+out:
+    if (prop_name) {
+        free(prop_name);
+    }
 }
 
 int getDisplayIsBestMode(int* value) {

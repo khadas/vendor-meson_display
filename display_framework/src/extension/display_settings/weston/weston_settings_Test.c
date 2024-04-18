@@ -51,7 +51,8 @@ int main()
          " 12->Dv Enable 13->active 14->vrr Enable 15->av mute 16->hdr mode 17->CvbsModesList 18-> mode support check"
          "19->current aspect ratio 20->event test 21->frac rate policy 22->scaling 23->Supported dvmode"
          " 24->hdr supportedlist 25->DvCap 26->display enabled 27->dpms status 28->mode support attrlist 29->framrate"
-         " 30->primar plane fb size 31->physical size 32->Timing information 33->dv mode 34->rx supported hdcp version\n");
+         " 30->primar plane fb size 31->physical size 32->Timing information 33->dv mode 34->rx supported hdcp version "
+         " 35->cvbs video mute\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -313,6 +314,9 @@ int main()
                    printf("\n get_prop fail\n");
                }
            }
+        } else if (get == 36 && len == 1) {
+            int value = getDisplayCvbsAVMute( DISPLAY_CONNECTOR_CVBS );
+            printf("\n cvbs video mute:%d\n",value);
         }
     }
     else {

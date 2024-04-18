@@ -45,7 +45,7 @@ int main()
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->hdr policy 3->av mute 4->HDMI HDCP enable 5-><colorDepth, colorSpace>"
         "6->HDCP Content Type  7->DvEnable 8->active 9->vrr Enable 10->auto mode 11->dummy mode 12->aspect ratio"
-        " 13->scaling 14->the status of display 15->dv mode\n");
+        " 13->scaling 14->the status of display 15->dv mode 16->cvbs video mute\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -231,6 +231,16 @@ int main()
             }else{
                 printf("setDisplayDvMode Fail\n");
             }
+        } else if(set == 16 && len == 1){
+            printf("\n cvbs avmute:\n");
+            int mute = 0;
+            len = scanf("%d", &mute);
+            if (len == 1) {
+                if (setDisplayCvbsAVMute(mute))
+                    printf("\n setDisplayCvbsAVMute fail:\n");
+            } else {
+                printf("\n scanf fail\n");
+            }
         }
     }
     else if(select_s == 1 && select_len == 1) {
@@ -240,7 +250,7 @@ int main()
          "19->current aspect ratio 20->event test 21->frac rate policy 22->scaling 23->supported dvmode"
          " 24->hdr supportedlist 25->DvCap 26->display enabled 27->dpms status 28->mode support attrlist 29->framrate"
          " 30->primar plane fb size 31->physical size 32->Timing information 33->is bestmode 34->dv mode "
-         " 35->rx supported hdcp version\n");
+         " 35->rx supported hdcp version 36->cvbs video mute\n");
         len = scanf("%d",&get);
         if (get == 0 && len == 1) {
             ENUM_DISPLAY_HDR_POLICY value = getDisplayHDRPolicy( DISPLAY_CONNECTOR_HDMIA);
@@ -523,6 +533,9 @@ int main()
                    printf("\n get_prop fail\n");
                }
            }
+        } else if (get == 36 && len == 1) {
+            int value = getDisplayCvbsAVMute( );
+            printf("\n cvbs video mute:%d\n",value);
         }
     }
     else {

@@ -175,6 +175,8 @@ int getDisplayPhysicalSize( int* width, int* height, DISPLAY_CONNECTOR_TYPE conn
 int getDisplaySignalTimingInfo(uint16_t* htotal, uint16_t* vtotal, uint16_t* hstart,
                                                    uint16_t* vstart, DISPLAY_CONNECTOR_TYPE connType);
 int getDisplayIsBestMode(int* value);
+int setDisplayBackGroundColor(unsigned char red, unsigned char green, unsigned char blue,
+                                                             DISPLAY_CONNECTOR_TYPE connType);
 int setDisplayPlaneMute(unsigned int plane_type,  unsigned int plane_mute);
 int getDisplayRxSupportedHdcpVersion(DISPLAY_CONNECTOR_TYPE connType);
 

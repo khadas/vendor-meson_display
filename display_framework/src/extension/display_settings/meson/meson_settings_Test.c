@@ -45,7 +45,7 @@ int main()
     if (select_s == 0 && select_len == 1) {
         printf("set:0->hdmi mode 1->cvbs mode 2->hdr policy 3->av mute 4->HDMI HDCP enable 5-><colorDepth, colorSpace>"
         "6->HDCP Content Type  7->DvEnable 8->active 9->vrr Enable 10->auto mode 11->dummy mode 12->aspect ratio"
-         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode 17->plane mute \n");
+         "13->mode attr 14->FunctionAttribute 15->video zorder 16->dv mode 17->plane mute 18->background color\n");
         len = scanf("%d",&set);
         if (set == 0 && len == 1) {
             printf("please input modeInfo:interlace, w, h, vrefresh\n");
@@ -272,6 +272,19 @@ int main()
                 }
             } else {
                     printf("\n \ scanf fail \n");
+            }
+        }  else if (set == 18 && len == 1) {
+            printf("\n please input backgroundColor:\n");
+            unsigned char red = 0;
+            unsigned char green = 0;
+            unsigned char blue  = 0;
+            scanf("%x %x %x",&red,&green,&blue);
+            printf("The value is %x %x %x\n",red,green,blue);
+            int ret = setDisplayBackGroundColor(red, green, blue,DISPLAY_CONNECTOR_HDMIA);
+            if (ret ) {
+                printf(" setDisplayBackGroundColor Fail\n");
+            } else {
+               printf("setDisplayBackGroundColor success\n");
             }
         }
     }

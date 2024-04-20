@@ -738,6 +738,43 @@ int setDisplayVideoZorder(unsigned int index, unsigned int zorder, unsigned int 
     return ret;
 }
 
+int setDisplayBackGroundColor(unsigned char red, unsigned char green, unsigned char blue,
+                              DISPLAY_CONNECTOR_TYPE connType) {
+    int res = -1;
+    int ret = -1;
+    int fd = 0;
+    drmModeAtomicReq *req = NULL;
+    uint64_t backgroundColor = 0;
+    fd = display_meson_set_open();
+    req = drmModeAtomicAlloc();
+    if (req == NULL) {
+        DEBUG(" %s %d invalid parameter return",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    backgroundColor |= ((uint64_t)(0xff<<8 | 0xff) << 48);
+    backgroundColor |= ((uint64_t)(red<<8 | 0xff) << 32);
+    backgroundColor |= ((uint64_t)(green<<8 | 0xff) << 16);
+    backgroundColor |= ((uint64_t)(blue<<8 | 0xff) << 0);
+    DEBUG("%s %d set background current color %llx", __FUNCTION__, __LINE__, backgroundColor);
+    res = meson_drm_setBackGroundColor(fd, req, backgroundColor, connType);
+    if (res == -1) {
+        ERROR("%s %d set background color fail",__FUNCTION__,__LINE__);
+        goto out;
+    }
+    ret = drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+    if (ret) {
+        ERROR("%s %d drmModeAtomicCommit failed: ret %d errno %d", __FUNCTION__,__LINE__, ret, errno );
+        goto out;
+    }
+out:
+    if (req) {
+        drmModeAtomicFree(req);
+        req = NULL;
+    }
+    meson_close_drm(fd);
+    return  ret;
+}
+
 int setDisplayDvMode(int dvmode,DISPLAY_CONNECTOR_TYPE connType) {
     int res = -1;
     int ret = -1;
